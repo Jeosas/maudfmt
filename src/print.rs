@@ -108,7 +108,7 @@ impl<'a> Printer<'a> {
             Markup::ControlFlow(control_flow) => {
                 self.print_control_flow(control_flow, indent_level)
             }
-            _ => todo!(),
+            Markup::Semi(_semi) => todo!("didn't manage to find its usage yet"),
         }
     }
 
@@ -265,7 +265,7 @@ impl<'a> Printer<'a> {
                 self.new_line(indent_level);
                 self.write("}");
             }
-            _ => todo!(),
+            ControlFlowKind::While(_while_expr) => todo!(),
         }
     }
 

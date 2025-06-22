@@ -1,6 +1,7 @@
 use std::ops::Range;
 
 use crate::ast::{DiagnosticParse, Element};
+use anyhow::{Context, Result};
 use crop::Rope;
 use syn::{
     parse::{ParseStream, Parser},
@@ -33,7 +34,7 @@ pub fn format_source(
     source: &mut Rope,
     macros: Vec<MaudMacro<'_>>,
     options: &FormatOptions,
-) -> Result<String, String> {
+) -> String {
     let mut edits = Vec::new();
 
     for maud_mac in macros {
@@ -65,16 +66,16 @@ pub fn format_source(
         last_offset += new_text.len() as isize - (end as isize - start as isize);
     }
 
-    Ok(source.to_string())
+    source.to_string()
 }
 
-fn format_macro(mac: &MaudMacro, options: &FormatOptions) -> Result<String, String> {
+fn format_macro(mac: &MaudMacro, options: &FormatOptions) -> Result<String> {
     let mut diagnostics = Vec::new();
     let markups: Markups<Element> = Parser::parse2(
         |input: ParseStream| Markups::diagnostic_parse(input, &mut diagnostics),
         mac.macro_.tokens.clone(),
     )
-    .map_err(|err| format!("failed to parse maud macro: {}", err))?;
+    .context("Failed to parse maud macro")?;
 
     Ok(print(markups, mac, options))
 }

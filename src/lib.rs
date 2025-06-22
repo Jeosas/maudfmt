@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use crop::Rope;
 
 mod collect;
@@ -7,11 +8,13 @@ mod vendor;
 
 use vendor::ast;
 
-pub fn try_fmt_file(source: &str, options: &format::FormatOptions) -> Result<String, String> {
-    let ast = syn::parse_file(source).map_err(|err| format!("failed to parse file: {}", err))?;
+pub use format::FormatOptions;
+
+pub fn try_fmt_file(source: &str, options: &format::FormatOptions) -> Result<String> {
+    let ast = syn::parse_file(source).context("Failed to parse source")?;
     let rope = Rope::from(source);
     let (mut rope, macros) = collect::collect_macros_from_file(&ast, rope, &options.macro_names);
-    format::format_source(&mut rope, macros, options)
+    Ok(format::format_source(&mut rope, macros, options))
 }
 
 #[cfg(test)]

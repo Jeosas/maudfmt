@@ -42,6 +42,25 @@
         ];
     in
     {
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          toolchain = mkRustToolchain system;
+          naersk' = naersk.lib.${system}.override {
+            cargo = toolchain;
+            rustc = toolchain;
+          };
+        in
+        rec {
+          default = maudfmt;
+          maudfmt = naersk'.buildPackage {
+            src = ./.;
+            doCheck = true; # run tests when compiling
+          };
+        }
+      );
+
       devShells = forAllSystems (system: {
         default =
           let
@@ -77,8 +96,14 @@
         {
           pre-commit-check = pre-commit-hooks.lib.${pkgs.system}.run {
             src = ./.;
+            settings = {
+              rust.check.cargoDeps = pkgs.rustPlatform.importCargoLock {
+                lockFile = ./Cargo.lock;
+              };
+            };
             hooks = {
               # General
+              yamlfmt.enable = true;
               keep-sorted = {
                 enable = true;
                 name = "Keep sorted";
@@ -96,7 +121,7 @@
               };
               # Nix
               nixfmt-rfc-style.enable = true;
-              # flake-checker.enable = true; # broken in 24.11
+              flake-checker.enable = true;
               # Rust
               rustfmt = {
                 enable = true;
@@ -106,7 +131,6 @@
                 };
               };
               clippy = {
-                # TODO(jeosas): use naersk to access dependency in nix offline sandbox
                 enable = true;
                 packageOverrides = {
                   cargo = toolchain;
@@ -115,7 +139,6 @@
                 settings = {
                   denyWarnings = true;
                   extraArgs = "--all-targets";
-                  offline = false; # incompatible with `nix flake check`
                 };
               };
             };

@@ -25,7 +25,7 @@ jobs:
           tag: ${{ github.ref_name }}
         run: |-
           gh release create "${{ github.ref_name }}" \
-          --repo "$GITHUB_REPOSITORY" \
-          --title "${GITHUB_REPOSITORY#*/} ${tag#v}" \
-          --generate-notes \
-          "./result/maudfmt#maudfmt-${tag#v}"
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${GITHUB_REPOSITORY#*/} ${tag#v}" \
+            --generate-notes \
+            "./result/bin/maudfmt#maudfmt-${tag#v}"

@@ -60,12 +60,11 @@ require("conform").setup({
   formatters = {
     maudfmt = {
       command = "maudfmt",
-      prepend_args = { "-s" },
-      args = {},  -- add any config you wish
+      args = { "-s" },  -- add any config you wish
     },
   },
   formatters_by_ft = {
-    rust = { "rustfmt", "maudfmt", lsp_format = "fallback" },
+    rust = { "rustfmt", "maudfmt" },
   },
 })
 ```

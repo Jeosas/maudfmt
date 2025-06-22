@@ -88,6 +88,12 @@
                 ];
                 entry = "${pkgs.keep-sorted}/bin/keep-sorted";
               };
+              readme-help = {
+                enable = true;
+                name = "Generate readme help";
+                entry = "${pkgs.just}/bin/just update-readme-help";
+                pass_filenames = false;
+              };
               # Nix
               nixfmt-rfc-style.enable = true;
               # flake-checker.enable = true; # broken in 24.11

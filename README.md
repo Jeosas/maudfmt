@@ -69,6 +69,34 @@ require("conform").setup({
 })
 ```
 
+## Tips and Tricks
+
+### Magic comments
+
+_maudfmt_ (will soonTM) automatically manage exanding and collapsing blocks depending on line length.
+
+In some cases, would might prefer to expand a block even if it fits on a single line.
+To do this, you can use _magic comments_:
+
+- on the opening bracket line:
+
+```
+p { //
+   "Small text"
+}
+```
+
+- inside the block itself (soonTM)
+
+```
+p {
+   // either on an empty line
+   "Small text" // or as a trailing comment
+}
+```
+
+> doesn't matter if there is an accual comment, the `//` comment marker is enough.
+
 ## Acknowledgment
 
 Special thanks to the creators and contributors of the following repos for their awesome work and inspiration:

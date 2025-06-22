@@ -109,22 +109,6 @@ mod test {
         "#
     );
 
-    // test_default!(
-    //     comment,
-    //     r##"
-    //     use maud::DOCTYPE;
-    //     html!{
-    //         (DOCTYPE)   // <!DOCTYPE html>
-    //     }
-    //     "##,
-    //     r##"
-    //     use maud::DOCTYPE;
-    //     html! {
-    //       (DOCTYPE)  // <!DOCTYPE html>
-    //     }
-    //     "##
-    // );
-
     test_default!(
         elements_with_contents,
         r#"
@@ -545,6 +529,118 @@ mod test {
                     h2 { "Subtitle" }
                 }
                 _ => p { "Nothing to see here; move along." }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        comment_inline,
+        r##"
+        use maud::DOCTYPE;
+        html!{
+        // <!DOCTYPE html>
+        (DOCTYPE)
+        }
+        "##,
+        r##"
+        use maud::DOCTYPE;
+        html! {
+            // <!DOCTYPE html>
+            (DOCTYPE)
+        }
+        "##
+    );
+
+    test_default!(
+        comment_markup,
+        r##"
+        use maud::DOCTYPE;
+        html!{
+        (DOCTYPE)     // <!DOCTYPE html>
+        }
+        "##,
+        r##"
+        use maud::DOCTYPE;
+        html! {
+            (DOCTYPE)  // <!DOCTYPE html>
+        }
+        "##
+    );
+
+    test_default!(
+        keep_whitespace,
+        r##"
+        html!{
+        "Hello"
+
+        "World"
+        }
+        "##,
+        r##"
+        html! {
+            "Hello"
+
+            "World"
+        }
+        "##
+    );
+
+    test_default!(
+        keep_single_whitespace,
+        r##"
+        html!{
+        "Hello"
+
+
+
+        "World"
+        }
+        "##,
+        r##"
+        html! {
+            "Hello"
+
+            "World"
+        }
+        "##
+    );
+
+    // NOTE(jeosas): need fo be "comment in the block" aware to directly expand
+    // Use the brace_token DelimSpan to scan the block using Rope
+    // test_default!(
+    //     force_expand_inline,
+    //     r#"
+    //     html! {
+    //     h1 {
+    //     // keep expanded
+    //     "Poem"
+    //     }
+    //     }
+    //     "#,
+    //     r#"
+    //     html! {
+    //         h1 {
+    //             // keep expanded
+    //             "Poem"
+    //         }
+    //     }
+    //     "#
+    // );
+
+    test_default!(
+        force_expand_attrs,
+        r#"
+        html! { 
+        h1 { //
+        "Poem"
+        }
+        }
+        "#,
+        r#"
+        html! {
+            h1 {  //
+                "Poem"
             }
         }
         "#

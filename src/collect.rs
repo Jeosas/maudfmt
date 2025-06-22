@@ -9,7 +9,6 @@ pub struct MaudMacro<'a> {
     pub macro_: &'a Macro,
     pub indent: Indent,
     pub macro_name: String,
-    // pub comments: HashMap<usize, Option<String>>,
 }
 
 pub struct Indent {

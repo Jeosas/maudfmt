@@ -44,7 +44,7 @@ pub fn format_source(
         let start_byte = line_column_to_byte(source, start);
         let end_byte = line_column_to_byte(source, end);
 
-        match format_macro(&maud_mac, options) {
+        match format_macro(&maud_mac, source, options) {
             Ok(new_text) => edits.push(TextEdit {
                 range: start_byte..end_byte,
                 new_text,
@@ -69,7 +69,7 @@ pub fn format_source(
     source.to_string()
 }
 
-fn format_macro(mac: &MaudMacro, options: &FormatOptions) -> Result<String> {
+fn format_macro(mac: &MaudMacro, source: &Rope, options: &FormatOptions) -> Result<String> {
     let mut diagnostics = Vec::new();
     let markups: Markups<Element> = Parser::parse2(
         |input: ParseStream| Markups::diagnostic_parse(input, &mut diagnostics),
@@ -77,7 +77,7 @@ fn format_macro(mac: &MaudMacro, options: &FormatOptions) -> Result<String> {
     )
     .context("Failed to parse maud macro")?;
 
-    Ok(print(markups, mac, options))
+    Ok(print(markups, mac, source, options))
 }
 
 fn line_column_to_byte(source: &Rope, point: proc_macro2::LineColumn) -> usize {

@@ -1,5 +1,5 @@
 use crop::{Rope, RopeSlice};
-use proc_macro2::LineColumn;
+use proc_macro2::{LineColumn, extra::DelimSpan};
 use quote::quote;
 use syn::{
     Expr, File, Item, Local, Pat,
@@ -107,6 +107,8 @@ impl<'a, 'b> Printer<'a, 'b> {
             block.brace_token.span.span().start(),
             indent_level,
         );
+
+        let force_expand = force_expand || self.block_contains_comments(block.brace_token.span);
         match block.markups.markups.len() {
             0 => {
                 self.write("{}");
@@ -489,6 +491,7 @@ impl<'a, 'b> Printer<'a, 'b> {
     // Prevents inline comments and whitespace
     // from being printed more than once
     fn is_leading(&self, loc: LineColumn) -> bool {
+        // LineColumn.line is 1-indexed
         let line = self.source.line(loc.line - 1);
         // is start of the line ?
         line.byte_slice(..loc.column).to_string().trim().is_empty()
@@ -497,6 +500,7 @@ impl<'a, 'b> Printer<'a, 'b> {
     // Check if a Markup location is trainling a line or not
     // Prevents attrs comments from being printed more than once
     fn is_trailing(&self, loc: LineColumn) -> bool {
+        // LineColumn.line is 1-indexed
         let line = self.source.line(loc.line - 1);
 
         // is start of the line ?
@@ -507,6 +511,25 @@ impl<'a, 'b> Printer<'a, 'b> {
             .unwrap_or(&line_string)
             .trim()
             .is_empty()
+    }
+
+    fn block_contains_comments(&self, delim_span: DelimSpan) -> bool {
+        // LineColumn.line is 1-indexed
+        let start_line = delim_span.span().start().line - 1;
+        let end_line = delim_span.span().end().line - 1;
+
+        if start_line == end_line {
+            // closed brackets, let attr_comment handle it
+            return false;
+        }
+
+        (start_line..=end_line).any(|line| {
+            self.source
+                .line(line)
+                .to_string()
+                .split_once("//")
+                .is_some()
+        })
     }
 }
 

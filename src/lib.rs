@@ -606,27 +606,25 @@ mod test {
         "##
     );
 
-    // NOTE(jeosas): need fo be "comment in the block" aware to directly expand
-    // Use the brace_token DelimSpan to scan the block using Rope
-    // test_default!(
-    //     force_expand_inline,
-    //     r#"
-    //     html! {
-    //     h1 {
-    //     // keep expanded
-    //     "Poem"
-    //     }
-    //     }
-    //     "#,
-    //     r#"
-    //     html! {
-    //         h1 {
-    //             // keep expanded
-    //             "Poem"
-    //         }
-    //     }
-    //     "#
-    // );
+    test_default!(
+        force_expand_inline,
+        r#"
+        html! {
+        h1 {
+        // keep expanded
+        "Poem"
+        }
+        }
+        "#,
+        r#"
+        html! {
+            h1 {
+                // keep expanded
+                "Poem"
+            }
+        }
+        "#
+    );
 
     test_default!(
         force_expand_attrs,
@@ -663,11 +661,13 @@ mod test {
         r#"
         html! {
             (DOCTYPE)
-            html lang="en" { head {
-                // meta
-                .first {}
-                .second {}
-            } }
+            html lang="en" {
+                head {
+                    // meta
+                    .first {}
+                    .second {}
+                }
+            }
         }
         "#
     );

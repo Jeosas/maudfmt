@@ -619,7 +619,7 @@ fn unparse_expr(expr: &Expr) -> Vec<String> {
         .strip_suffix("}\n")
         .unwrap()
         .lines()
-        .map(|line| line.strip_prefix("    ").unwrap())
+        .map(|line| line.strip_prefix("    ").unwrap_or(line))
         .map(|line| line.to_string())
         .collect::<Vec<_>>()
 }

@@ -685,4 +685,28 @@ mod test {
         }
         "#
     );
+
+    test_default!(
+        whitespace_in_multi_line_strings_edge_case,
+        r##"
+        html! {
+        p {
+            (PreEscaped(r#"
+            Multiline
+
+            String
+            "#))
+        }
+        }
+        "##,
+        r##"
+        html! {
+            p { (PreEscaped(r#"
+                    Multiline
+            
+                    String
+                    "#)) }
+        }
+        "##
+    );
 }

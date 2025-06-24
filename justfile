@@ -8,6 +8,8 @@
 @dev $RUST_LOG="debug" $RUST_BACKTRACE="1":
   cargo run
 
+@test file:
+  cat "{{file}}" | cargo run -- -s | bat -l rust
 
 maudVersion := "v0.27.0"
 update-ast:

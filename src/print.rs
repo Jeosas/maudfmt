@@ -1,7 +1,11 @@
 use crop::{Rope, RopeSlice};
 use proc_macro2::LineColumn;
 use quote::quote;
-use syn::{Expr, File, Item, Local, Pat, spanned::Spanned as _, token::Paren};
+use syn::{
+    Expr, File, Item, Local, Pat,
+    spanned::Spanned as _,
+    token::{Dot, Paren, Pound},
+};
 
 use crate::{ast::*, collect::MaudMacro, format::FormatOptions};
 
@@ -208,31 +212,37 @@ impl<'a, 'b> Printer<'a, 'b> {
     ) {
         let mut is_first_attr = true;
 
-        self.print_inline_comment_and_whitespace(body.span().start(), indent_level);
-
         // element tag name
         if let Some(html_name) = name {
+            self.print_inline_comment_and_whitespace(html_name.span().start(), indent_level);
             is_first_attr = false;
             self.print_html_name(&html_name);
             self.print_attr_comment(html_name.span().end());
         }
 
         // sorting out attributes
-        let mut id_name: Option<HtmlNameOrMarkup> = None;
-        let mut classes: Vec<(HtmlNameOrMarkup, Option<Toggler>)> = Vec::new();
+        let mut id_name: Option<(Pound, HtmlNameOrMarkup)> = None;
+        let mut classes: Vec<(Dot, HtmlNameOrMarkup, Option<Toggler>)> = Vec::new();
         let mut named_attrs: Vec<(HtmlName, AttributeType)> = Vec::new();
         for attr in attrs {
             match attr {
-                Attribute::Id { name, .. } => id_name = Some(name),
-                Attribute::Class { name, toggler, .. } => classes.push((name, toggler)),
+                Attribute::Id { pound_token, name } => id_name = Some((pound_token, name)),
+                Attribute::Class {
+                    dot_token,
+                    name,
+                    toggler,
+                } => classes.push((dot_token, name, toggler)),
                 Attribute::Named { name, attr_type } => named_attrs.push((name, attr_type)),
             }
         }
 
         // printing id
-        if let Some(name) = id_name {
+        if let Some((pound_token, name)) = id_name {
             if !is_first_attr {
                 self.write(" ");
+            } else {
+                self.print_inline_comment_and_whitespace(pound_token.span().start(), indent_level);
+                is_first_attr = false;
             }
             self.write("#");
             match name {
@@ -245,7 +255,10 @@ impl<'a, 'b> Printer<'a, 'b> {
         }
 
         // printing classes
-        for (name, maybe_toggler) in classes {
+        for (dot_token, name, maybe_toggler) in classes {
+            if is_first_attr {
+                self.print_inline_comment_and_whitespace(dot_token.span().start(), indent_level);
+            }
             self.write(".");
             match name {
                 HtmlNameOrMarkup::HtmlName(html_name) => {
@@ -488,7 +501,6 @@ impl<'a, 'b> Printer<'a, 'b> {
 
         // is start of the line ?
         let line_string = line.byte_slice(loc.column..).to_string();
-        dbg!(&line_string);
         line_string
             .split_once("//") // remove comment if exist
             .map(|(txt, _)| txt)

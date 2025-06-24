@@ -645,4 +645,30 @@ mod test {
         }
         "#
     );
+
+    test_default!(
+        keep_comment_1,
+        r#"
+        html! {
+            (DOCTYPE)
+            html lang="en" {
+                head {
+                    // meta
+                    .first {}
+                    .second {}
+                }
+            }
+        }
+        "#,
+        r#"
+        html! {
+            (DOCTYPE)
+            html lang="en" { head {
+                // meta
+                .first {}
+                .second {}
+            } }
+        }
+        "#
+    );
 }

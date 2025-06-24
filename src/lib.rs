@@ -671,4 +671,18 @@ mod test {
         }
         "#
     );
+
+    test_default!(
+        comments_slashes_in_string,
+        r#"
+        html! {
+            a href="http://example.org" { "This is not a comment" }
+        }
+        "#,
+        r#"
+        html! {
+            a href="http://example.org" { "This is not a comment" }
+        }
+        "#
+    );
 }

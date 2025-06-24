@@ -424,11 +424,13 @@ impl<'a, 'b> Printer<'a, 'b> {
             return false;
         }
 
-        let cursor_line = loc.line - 1; // LineColumn.line is 1-indexed
+        // LineColumn.line is 1-indexed
+        let token_end_byte = self.source.byte_of_line(loc.line - 1) + loc.column;
+        let next_line_start_byte = self.source.byte_of_line(loc.line);
 
         if let Some(comment) = self
             .source
-            .line(cursor_line)
+            .byte_slice(token_end_byte..next_line_start_byte)
             .to_string()
             .split_once("//")
             .map(|(_, txt)| txt)

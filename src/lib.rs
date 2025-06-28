@@ -4,6 +4,7 @@ use crop::Rope;
 mod collect;
 mod format;
 mod print;
+mod unparse;
 mod vendor;
 
 use vendor::ast;
@@ -701,11 +702,35 @@ mod test {
         "##,
         r##"
         html! {
-            p { (PreEscaped(r#"
-                    Multiline
-            
-                    String
-                    "#)) }
+            p { ({
+                PreEscaped(r#"
+            Multiline
+
+            String
+            "#)
+            }) }
+        }
+        "##
+    );
+
+    test_default!(
+        correct_multiline_string_indent_in_splices,
+        r##"
+        html! {
+            (r#"
+            Multiline
+            String
+            "#)
+        }
+        "##,
+        r##"
+        html! {
+            ({
+                r#"
+            Multiline
+            String
+            "#
+            })
         }
         "##
     );

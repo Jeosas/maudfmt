@@ -2,12 +2,12 @@ use crop::{Rope, RopeSlice};
 use proc_macro2::{LineColumn, extra::DelimSpan};
 use quote::quote;
 use syn::{
-    Expr, File, Item, Local, Pat,
+    Expr,
     spanned::Spanned as _,
     token::{Dot, Paren, Pound},
 };
 
-use crate::{ast::*, collect::MaudMacro, format::FormatOptions};
+use crate::{ast::*, collect::MaudMacro, format::FormatOptions, unparse::*};
 
 pub fn print<'b>(
     ast: Markups<Element>,
@@ -21,8 +21,7 @@ pub fn print<'b>(
     let mut printer = Printer {
         lines: Vec::new(),
         buf: String::new(),
-        base_indent: String::from("\t").repeat(mac.indent.tabs)
-            + &String::from(" ").repeat(mac.indent.spaces),
+        base_indent: mac.indent.tabs + mac.indent.spaces / 4,
         indent_str: &String::from(" ").repeat(4),
         mac,
         source,
@@ -36,7 +35,7 @@ pub fn print<'b>(
 struct Printer<'a, 'b> {
     lines: Vec<String>,
     buf: String,
-    base_indent: String,
+    base_indent: usize,
     indent_str: &'a str,
     mac: &'b MaudMacro<'b>,
     source: &'a Rope,
@@ -74,8 +73,7 @@ impl<'a, 'b> Printer<'a, 'b> {
 
     fn new_line(&mut self, indent_level: usize) {
         self.lines.push(self.buf.clone());
-        self.buf =
-            String::from(&self.base_indent) + &String::from(self.indent_str).repeat(indent_level);
+        self.buf = String::from(self.indent_str).repeat(self.base_indent + indent_level);
     }
 
     fn write(&mut self, content: &str) {
@@ -190,21 +188,23 @@ impl<'a, 'b> Printer<'a, 'b> {
     }
 
     fn print_expr(&mut self, expr: Expr, indent_level: usize) {
-        let lines = unparse_expr(&expr);
+        let lines: Vec<String> = match expr {
+            Expr::Block(expr_block) => {
+                unparse_stmts(&expr_block.block.stmts, self.base_indent + indent_level)
+            }
+            _ => unparse_expr(&expr, self.base_indent + indent_level),
+        };
+
         match lines.len() {
             0 => (),
-            1 => self.write(&lines[0]),
+            1 => self.write(lines[0].trim()),
             _ => {
-                let mut iter = lines.iter();
-                if let Some(first) = iter.next() {
-                    self.write(first);
-                }
-                for next in iter {
-                    self.new_line(indent_level);
-                    self.write(next);
-                }
+                self.write("{\n");
+                self.write(&lines.join("\n"));
+                self.new_line(indent_level);
+                self.write("}");
             }
-        };
+        }
     }
 
     fn print_element_with_contents(
@@ -349,7 +349,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             }
             ControlFlowKind::For(for_expr) => {
                 self.write("@for ");
-                self.write(&unparse_pat(&for_expr.pat).join("\n")); //TODO(jeosas): manage line length
+                self.write(&unparse_pat(&for_expr.pat, self.base_indent + indent_level).join("\n")); //TODO(jeosas): manage line length
                 self.write(" in ");
                 self.print_expr(for_expr.expr, indent_level);
                 self.write(" ");
@@ -357,21 +357,21 @@ impl<'a, 'b> Printer<'a, 'b> {
             }
             ControlFlowKind::Let(local) => {
                 self.write("@");
-                self.write(&unparse_local(&local).join("\n")); //TODO(jeosas): manage line length
+                self.write(&unparse_local(&local, self.base_indent + indent_level).join("\n")); //TODO(jeosas): manage line length
                 self.write(";");
                 self.print_attr_comment(local.semi_token.span().end());
             }
             ControlFlowKind::Match(match_expr) => {
                 self.write("@match ");
-                self.write(&unparse_expr(&match_expr.expr).join("\n")); // TODO(jeosas): manage line_length
+                self.print_expr(match_expr.expr, indent_level);
                 self.write(" {");
                 self.print_attr_comment(match_expr.brace_token.span.open().span().end());
                 for arm in match_expr.arms {
                     self.new_line(indent_level + 1);
-                    self.write(&unparse_pat(&arm.pat).join("\n")); //TODO(jeosas): manage line length
+                    self.write(&unparse_pat(&arm.pat, self.base_indent + indent_level).join("\n")); //TODO(jeosas): manage line length
                     if let Some((_, guard_cond)) = arm.guard {
                         self.write(" if ");
-                        self.write(&unparse_expr(&guard_cond).join("\n")); //TODO(jeosas): manage line length
+                        self.print_expr(guard_cond, indent_level);
                     }
                     self.write(" => ");
                     self.print_markup(arm.body, indent_level + 1);
@@ -390,7 +390,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             Expr::Let(expr_let) => {
                 // crashes prettyplease > syn can't parse it
                 self.write("let ");
-                self.write(&unparse_pat(&expr_let.pat).join("\n")); //TODO(jeosas): manage line length
+                self.write(&unparse_pat(&expr_let.pat, self.base_indent + indent_level).join("\n")); //TODO(jeosas): manage line length
                 self.write(" = ");
                 self.print_expr(*expr_let.expr, indent_level);
                 self.write(" ");
@@ -546,80 +546,4 @@ fn extract_inline_comment(line: RopeSlice) -> Option<String> {
     } else {
         None
     }
-}
-
-fn unparse_local(local: &Local) -> Vec<String> {
-    let file = File {
-        shebang: None,
-        attrs: vec![],
-        items: vec![
-            //
-            Item::Verbatim(quote::quote! {
-                fn main() {
-                    #local;
-                }
-            }),
-        ],
-    };
-
-    let wrapped = prettyplease::unparse(&file);
-    wrapped
-        .strip_prefix("fn main() {\n    ")
-        .unwrap()
-        .strip_suffix(";\n}\n")
-        .unwrap()
-        .lines()
-        .map(|line| line.to_string())
-        .collect::<Vec<_>>()
-}
-
-fn unparse_pat(pat: &Pat) -> Vec<String> {
-    let file = File {
-        shebang: None,
-        attrs: vec![],
-        items: vec![
-            //
-            Item::Verbatim(quote::quote! {
-                fn main() {
-                    let #pat;
-                }
-            }),
-        ],
-    };
-
-    let wrapped = prettyplease::unparse(&file);
-    wrapped
-        .strip_prefix("fn main() {\n    let ")
-        .unwrap()
-        .strip_suffix(";\n}\n")
-        .unwrap()
-        .lines()
-        .map(|line| line.to_string())
-        .collect::<Vec<_>>()
-}
-
-fn unparse_expr(expr: &Expr) -> Vec<String> {
-    let file = File {
-        shebang: None,
-        attrs: vec![],
-        items: vec![
-            //
-            Item::Verbatim(quote::quote! {
-                fn main() {
-                    #expr
-                }
-            }),
-        ],
-    };
-
-    let wrapped = prettyplease::unparse(&file);
-    wrapped
-        .strip_prefix("fn main() {\n")
-        .unwrap()
-        .strip_suffix("}\n")
-        .unwrap()
-        .lines()
-        .map(|line| line.strip_prefix("    ").unwrap_or(line))
-        .map(|line| line.to_string())
-        .collect::<Vec<_>>()
 }

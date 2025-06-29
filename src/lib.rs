@@ -436,11 +436,7 @@ mod test {
         html! {
             p {
                 "Hello, "
-                @if let Some(name) = user {
-                    (name)
-                } @else {
-                    "stranger"
-                }
+                @if let Some(name) = user { (name) } @else { "stranger" }
                 "!"
             }
         }

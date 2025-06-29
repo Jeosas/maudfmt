@@ -101,18 +101,13 @@ impl<'a, 'b> Printer<'a, 'b> {
         }
     }
 
-    fn print_block<E: Into<Element>>(
-        &mut self,
-        block: Block<E>,
-        indent_level: usize,
-        force_expand: bool,
-    ) {
+    fn print_block<E: Into<Element>>(&mut self, block: Block<E>, indent_level: usize) {
         self.print_inline_comment_and_whitespace(
             block.brace_token.span.span().start(),
             indent_level,
         );
 
-        let expand = force_expand || self.block_contains_comments(block.brace_token.span) || {
+        let expand = self.block_contains_comments(block.brace_token.span) || {
             if let Some(blk_len) = block_len(&block) {
                 (self.line_len() + blk_len) > self.options.line_length
             } else {
@@ -163,7 +158,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             Markup::Element(element) => {
                 self.print_element_with_contents(element.into(), indent_level)
             }
-            Markup::Block(block) => self.print_block(block, indent_level, false),
+            Markup::Block(block) => self.print_block(block, indent_level),
             Markup::ControlFlow(control_flow) => {
                 self.print_control_flow(control_flow, indent_level)
             }
@@ -370,7 +365,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             }
             ElementBody::Block(block) => {
                 self.write(" ");
-                self.print_block(block, indent_level, false);
+                self.print_block(block, indent_level);
             }
         }
     }
@@ -395,7 +390,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                 self.write(" in ");
                 self.print_expr(for_expr.expr, indent_level);
                 self.write(" ");
-                self.print_block(for_expr.body, indent_level, true);
+                self.print_block(for_expr.body, indent_level);
             }
             ControlFlowKind::Let(local) => {
                 self.write("@");
@@ -441,7 +436,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                         self.write(" ");
                     }
                 }
-                self.print_block(while_expr.body, indent_level, true);
+                self.print_block(while_expr.body, indent_level);
             }
         }
     }
@@ -464,7 +459,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             }
         }
 
-        self.print_block(if_expr.then_branch, indent_level, true);
+        self.print_block(if_expr.then_branch, indent_level);
 
         if let Some((_, _, if_or_block)) = if_expr.else_branch {
             self.write(" @else ");
@@ -474,7 +469,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                     self.print_if_expr(else_if_expr, indent_level);
                 }
                 IfOrBlock::Block(block) => {
-                    self.print_block(block, indent_level, true);
+                    self.print_block(block, indent_level);
                 }
             }
         }

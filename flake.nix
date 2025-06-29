@@ -42,23 +42,13 @@
         ];
     in
     {
-      apps = forAllSystems (
-        system:
-        let
-          toolchain = mkRustToolchain system;
-        in
-        rec {
-          default = maudfmt;
-          maudfmt = {
-            type = "app";
-            program = "${self.packages.${system}.maudfmt}/bin/maudfmt";
-          };
-          cargo = {
-            type = "app";
-            program = "${toolchain}/bin/cargo";
-          };
-        }
-      );
+      apps = forAllSystems (system: rec {
+        default = maudfmt;
+        maudfmt = {
+          type = "app";
+          program = "${self.packages.${system}.maudfmt}/bin/maudfmt";
+        };
+      });
       packages = forAllSystems (
         system:
         let

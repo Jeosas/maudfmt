@@ -167,7 +167,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             Markup::ControlFlow(control_flow) => {
                 self.print_control_flow(control_flow, indent_level)
             }
-            Markup::Semi(_semi) => todo!("didn't manage to find its usage yet"),
+            Markup::Semi(_semi) => self.write(";"),
         }
     }
 

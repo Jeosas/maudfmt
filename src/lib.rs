@@ -916,4 +916,18 @@ mod test {
         }
         "##
     );
+
+    test_default!(
+        semi,
+        r#"
+        html! {
+        ;
+        }
+        "#,
+        r#"
+        html! {
+            ;
+        }
+        "#
+    );
 }

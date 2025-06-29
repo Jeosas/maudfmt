@@ -391,7 +391,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             }
             ControlFlowKind::For(for_expr) => {
                 self.write("@for ");
-                self.write(&unparse_pat(&for_expr.pat, self.base_indent + indent_level).join("\n")); //TODO(jeosas): manage line length
+                self.write(&unparse_pat(&for_expr.pat, self.base_indent + indent_level).join("\n"));
                 self.write(" in ");
                 self.print_expr(for_expr.expr, indent_level);
                 self.write(" ");
@@ -399,7 +399,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             }
             ControlFlowKind::Let(local) => {
                 self.write("@");
-                self.write(&unparse_local(&local, self.base_indent + indent_level).join("\n")); //TODO(jeosas): manage line length
+                self.write(&unparse_local(&local, self.base_indent + indent_level).join("\n"));
                 self.write(";");
                 self.print_attr_comment(local.semi_token.span().end());
             }
@@ -410,7 +410,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                 self.print_attr_comment(match_expr.brace_token.span.open().span().end());
                 for arm in match_expr.arms {
                     self.new_line(indent_level + 1);
-                    self.write(&unparse_pat(&arm.pat, self.base_indent + indent_level).join("\n")); //TODO(jeosas): manage line length
+                    self.write(&unparse_pat(&arm.pat, self.base_indent + indent_level).join("\n"));
                     if let Some((_, guard_cond)) = arm.guard {
                         self.write(" if ");
                         self.print_expr(guard_cond, indent_level);
@@ -430,7 +430,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                         self.write("let ");
                         self.write(
                             &unparse_pat(&expr_let.pat, self.base_indent + indent_level).join("\n"),
-                        ); //TODO(jeosas): manage line length
+                        );
                         self.write(" = ");
                         self.print_expr(*expr_let.expr, indent_level);
                         self.write(" ");
@@ -452,7 +452,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             Expr::Let(expr_let) => {
                 // crashes prettyplease > syn can't parse it
                 self.write("let ");
-                self.write(&unparse_pat(&expr_let.pat, self.base_indent + indent_level).join("\n")); //TODO(jeosas): manage line length
+                self.write(&unparse_pat(&expr_let.pat, self.base_indent + indent_level).join("\n"));
                 self.write(" = ");
                 self.print_expr(*expr_let.expr, indent_level);
                 self.write(" ");

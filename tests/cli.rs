@@ -40,7 +40,9 @@ fn header(page_title: &str) -> Markup {
 /// A static footer.
 fn footer() -> Markup {
     html! {
-        footer { a href="rss.atom" { "RSS Feed" } }
+        footer {
+            a href="rss.atom" { "RSS Feed" }
+        }
     }
 }
 

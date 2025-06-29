@@ -7,13 +7,13 @@ use syn::{
     token::{Dot, Paren, Pound},
 };
 
-use crate::{ast::*, collect::MaudMacro, format::FormatOptions, unparse::*};
+use crate::{ast::*, collect::MaudMacro, format::FormatOptions, line_length::*, unparse::*};
 
 pub fn print<'b>(
     ast: Markups<Element>,
     mac: &'b MaudMacro<'b>,
     source: &Rope,
-    _options: &FormatOptions,
+    options: &FormatOptions,
 ) -> String {
     #[cfg(debug_assertions)]
     dbg!(&ast); // print ast when debugging (not release mode)
@@ -25,6 +25,7 @@ pub fn print<'b>(
         indent_str: &String::from(" ").repeat(4),
         mac,
         source,
+        options,
     };
 
     printer.print_ast(ast);
@@ -39,6 +40,7 @@ struct Printer<'a, 'b> {
     indent_str: &'a str,
     mac: &'b MaudMacro<'b>,
     source: &'a Rope,
+    options: &'a FormatOptions,
 }
 
 impl<'a, 'b> Printer<'a, 'b> {
@@ -80,6 +82,10 @@ impl<'a, 'b> Printer<'a, 'b> {
         self.buf += content;
     }
 
+    fn line_len(&self) -> usize {
+        self.buf.len()
+    }
+
     fn print_html_name(&mut self, name: &HtmlName) {
         for child in name.name.pairs() {
             match child.value() {
@@ -106,44 +112,45 @@ impl<'a, 'b> Printer<'a, 'b> {
             indent_level,
         );
 
-        let force_expand = force_expand || self.block_contains_comments(block.brace_token.span);
-        match block.markups.markups.len() {
-            0 => {
-                self.write("{}");
-                self.print_attr_comment(block.brace_token.span.close().span().end());
+        let expand = force_expand || self.block_contains_comments(block.brace_token.span) || {
+            if let Some(blk_len) = block_len(&block) {
+                (self.line_len() + blk_len) > self.options.line_length
+            } else {
+                true
             }
-            1 if !force_expand => {
-                self.write("{");
-                if self.print_attr_comment(block.brace_token.span.open().span().end()) {
-                    // expand if comment
-                    self.new_line(indent_level + 1);
-                    for markup in block.markups.markups {
-                        // there should be only one value
-                        self.print_markup(markup, indent_level + 1);
-                    }
-                    self.new_line(indent_level);
-                    self.write("}");
-                } else {
-                    self.write(" ");
-                    for markup in block.markups.markups {
-                        // there should be only one value
-                        self.print_markup(markup, indent_level);
-                    }
-                    self.write(" }");
-                }
-                self.print_attr_comment(block.brace_token.span.close().span().end());
-            }
-            _ => {
-                self.write("{");
-                self.print_attr_comment(block.brace_token.span.open().span().end());
+        };
+        if block.markups.markups.is_empty() {
+            self.write("{}");
+            self.print_attr_comment(block.brace_token.span.close().span().end());
+        } else if !expand {
+            self.write("{");
+            if self.print_attr_comment(block.brace_token.span.open().span().end()) {
+                // expand if comment
+                self.new_line(indent_level + 1);
                 for markup in block.markups.markups {
-                    self.new_line(indent_level + 1);
+                    // there should be only one value
                     self.print_markup(markup, indent_level + 1);
                 }
                 self.new_line(indent_level);
                 self.write("}");
-                self.print_attr_comment(block.brace_token.span.close().span().end());
+            } else {
+                for markup in block.markups.markups {
+                    self.write(" ");
+                    self.print_markup(markup, indent_level);
+                }
+                self.write(" }");
             }
+            self.print_attr_comment(block.brace_token.span.close().span().end());
+        } else {
+            self.write("{");
+            self.print_attr_comment(block.brace_token.span.open().span().end());
+            for markup in block.markups.markups {
+                self.new_line(indent_level + 1);
+                self.print_markup(markup, indent_level + 1);
+            }
+            self.new_line(indent_level);
+            self.write("}");
+            self.print_attr_comment(block.brace_token.span.close().span().end());
         }
     }
 
@@ -164,6 +171,8 @@ impl<'a, 'b> Printer<'a, 'b> {
         }
     }
 
+    // NOTE: lit do not care about line length
+    //       let user take care of it
     fn print_lit(&mut self, html_lit: HtmlLit, indent_level: usize) {
         self.print_inline_comment_and_whitespace(html_lit.span().start(), indent_level);
         let lit = &html_lit.lit;
@@ -174,8 +183,11 @@ impl<'a, 'b> Printer<'a, 'b> {
     fn print_splice(&mut self, expr: Expr, paren: Paren, indent_level: usize) {
         self.print_inline_comment_and_whitespace(paren.span.span().start(), indent_level);
         self.write("(");
+
         if self.print_attr_comment(paren.span.open().span().end()) {
-            // expand if comment
+            // expand if comment or line_length exceeded
+            // NOTE: comments on splice lines aren't supported
+            //       since syn/prettyprinter do not support them
             self.new_line(indent_level + 1);
             self.print_expr(expr, indent_level + 1);
             self.new_line(indent_level);
@@ -212,16 +224,6 @@ impl<'a, 'b> Printer<'a, 'b> {
         Element { name, attrs, body }: Element,
         indent_level: usize,
     ) {
-        let mut is_first_attr = true;
-
-        // element tag name
-        if let Some(html_name) = name {
-            self.print_inline_comment_and_whitespace(html_name.span().start(), indent_level);
-            is_first_attr = false;
-            self.print_html_name(&html_name);
-            self.print_attr_comment(html_name.span().end());
-        }
-
         // sorting out attributes
         let mut id_name: Option<(Pound, HtmlNameOrMarkup)> = None;
         let mut classes: Vec<(Dot, HtmlNameOrMarkup, Option<Toggler>)> = Vec::new();
@@ -238,13 +240,39 @@ impl<'a, 'b> Printer<'a, 'b> {
             }
         }
 
+        let should_wrap = if let Some(element_len) =
+            element_attrs_len(&name, &id_name, &classes, &named_attrs, &body)
+        {
+            (self.line_len() + element_len) > self.options.line_length
+        } else {
+            true
+        };
+        let mut is_first_attr = true;
+
+        // element tag name
+        if let Some(html_name) = name {
+            self.print_inline_comment_and_whitespace(html_name.span().start(), indent_level);
+            is_first_attr = false;
+            self.print_html_name(&html_name);
+            self.print_attr_comment(html_name.span().end());
+        }
+
         // printing id
         if let Some((pound_token, name)) = id_name {
-            if !is_first_attr {
-                self.write(" ");
-            } else {
-                self.print_inline_comment_and_whitespace(pound_token.span().start(), indent_level);
-                is_first_attr = false;
+            match (is_first_attr, should_wrap) {
+                (false, false) => {
+                    self.write(" ");
+                }
+                (false, true) => {
+                    self.new_line(indent_level + 1);
+                }
+                (true, _) => {
+                    self.print_inline_comment_and_whitespace(
+                        pound_token.span().start(),
+                        indent_level,
+                    );
+                    is_first_attr = false;
+                }
             }
             self.write("#");
             match name {
@@ -258,8 +286,18 @@ impl<'a, 'b> Printer<'a, 'b> {
 
         // printing classes
         for (dot_token, name, maybe_toggler) in classes {
-            if is_first_attr {
-                self.print_inline_comment_and_whitespace(dot_token.span().start(), indent_level);
+            match (is_first_attr, should_wrap) {
+                (false, true) => {
+                    self.new_line(indent_level + 1);
+                }
+                (false, false) => (),
+                (true, _) => {
+                    self.print_inline_comment_and_whitespace(
+                        dot_token.span().start(),
+                        indent_level,
+                    );
+                    is_first_attr = false;
+                }
             }
             self.write(".");
             match name {
@@ -285,7 +323,11 @@ impl<'a, 'b> Printer<'a, 'b> {
 
         // printing other attributes
         for (name, attr_type) in named_attrs {
-            self.write(" ");
+            if should_wrap {
+                self.new_line(indent_level + 1);
+            } else {
+                self.write(" ");
+            }
             self.write(&name.to_string());
             match attr_type {
                 AttributeType::Normal { value, .. } => {

@@ -3,6 +3,7 @@ use crop::Rope;
 
 mod collect;
 mod format;
+mod line_length;
 mod print;
 mod unparse;
 mod vendor;
@@ -27,6 +28,10 @@ mod test {
     use pretty_assertions::assert_eq;
 
     static DEFAULT_OPTIONS: LazyLock<FormatOptions> = LazyLock::new(FormatOptions::default);
+    static SMALL_LINE_OPTIONS: LazyLock<FormatOptions> = LazyLock::new(|| FormatOptions {
+        line_length: 40,
+        ..Default::default()
+    });
 
     macro_rules! test_default {
         ($title: ident, $content: literal, $expected: literal ) => {
@@ -39,6 +44,22 @@ mod test {
                 );
                 // check that `$expected` is a valid maud macro
                 try_fmt_file($expected, &DEFAULT_OPTIONS)
+                    .expect("expected should be parsable and valid maud");
+            }
+        };
+    }
+
+    macro_rules! test_small_line {
+        ($title: ident, $content: literal, $expected: literal ) => {
+            #[test]
+            fn $title() {
+                // check formatter works as expected
+                assert_eq!(
+                    try_fmt_file($content, &SMALL_LINE_OPTIONS).expect("should be able to parse"),
+                    String::from($expected)
+                );
+                // check that `$expected` is a valid maud macro
+                try_fmt_file($expected, &SMALL_LINE_OPTIONS)
                     .expect("expected should be parsable and valid maud");
             }
         };
@@ -63,23 +84,6 @@ mod test {
         }
         "#
     );
-
-    // test_default!(
-    //     long_lit,
-    //     r#"
-    //     html! { pre { "If voting changed anything, they'd make it illegal." } }
-    //     "#,
-    //     r#"
-    //     html! {
-    //         pre {
-    //             r#"
-    //                 If voting changed anything,
-    //                 they'd make it illegal.
-    //             "#
-    //         }
-    //     }
-    //     "#
-    // );
 
     test_default!(
         escaping,
@@ -174,7 +178,9 @@ mod test {
         r#"
         html! {
             ul {
-                li { a href="about:blank" { "Apple Bloom" } }
+                li {
+                    a href="about:blank" { "Apple Bloom" }
+                }
                 li class="lower-middle" { "Sweetie Belle" }
                 li dir="rtl" {
                     "Scootaloo "
@@ -250,18 +256,8 @@ mod test {
         "#,
         r#"
         html! {
-            p {
-                "Hi, "
-                (best_pony)
-                "!"
-            }
-            p {
-                "I have "
-                (numbers.len())
-                " numbers, "
-                "and the first one is "
-                (numbers[0])
-            }
+            p { "Hi, " (best_pony) "!" }
+            p { "I have " (numbers.len()) " numbers, " "and the first one is " (numbers[0]) }
         }
         "#
     );
@@ -274,10 +270,12 @@ mod test {
         "#,
         r#"
         html! {
-            p { ({
-                let f: Foo = something_convertible_to_foo()?;
-                f.time().format("%H%Mh")
-            }) }
+            p {
+                ({
+                    let f: Foo = something_convertible_to_foo()?;
+                    f.time().format("%H%Mh")
+                })
+            }
         }
         "#
     );
@@ -301,10 +299,7 @@ mod test {
         "#,
         r#"
         html! {
-            a href={
-                (GITHUB)
-                "/lambda-fairy/maud"
-            } { "Fork me on GitHub" }
+            a href={ (GITHUB) "/lambda-fairy/maud" } { "Fork me on GitHub" }
         }
         "#
     );
@@ -316,10 +311,9 @@ mod test {
         "#,
         r#"
         html! {
-            aside #(name) { p.{
-                "color-"
-                (severity)
-            } { "This is the worst! Possible! Thing!" } }
+            aside #(name) {
+                p.{ "color-" (severity) } { "This is the worst! Possible! Thing!" }
+            }
         }
         "#
     );
@@ -461,9 +455,11 @@ mod test {
         r#"
         html! {
             p { "My favorite ponies are:" }
-            ol { @for name in &names {
-                li { (name) }
-            } }
+            ol {
+                @for name in &names {
+                    li { (name) }
+                }
+            }
         }
         "#
     );
@@ -509,7 +505,9 @@ mod test {
                         li { "Evil laugh" }
                     }
                 }
-                Princess::Celestia => { p { "Sister, please stop reading my diary. It's rude." } }
+                Princess::Celestia => {
+                    p { "Sister, please stop reading my diary. It's rude." }
+                }
                 _ => p { "Nothing to see here; move along." }
             }
         }
@@ -687,6 +685,7 @@ mod test {
         "#
     );
 
+    // NOTE: multiline string formatting is left to the users
     test_default!(
         whitespace_in_multi_line_strings_edge_case,
         r##"
@@ -702,17 +701,22 @@ mod test {
         "##,
         r##"
         html! {
-            p { ({
-                PreEscaped(r#"
+            p {
+                ({
+                    PreEscaped(
+                        r#"
             Multiline
 
             String
-            "#)
-            }) }
+            "#,
+                    )
+                })
+            }
         }
         "##
     );
 
+    // NOTE: multiline string formatting is left to the users
     test_default!(
         correct_multiline_string_indent_in_splices,
         r##"
@@ -731,6 +735,184 @@ mod test {
             String
             "#
             })
+        }
+        "##
+    );
+
+    test_default!(
+        line_length_long_splice,
+        r##"
+        html! {
+            (super_long_splice.with_a_super_long_method().and_an_other_super_super_long_method_to_call_afer().unwarp())
+        }
+        "##,
+        r##"
+        html! {
+            ({
+                super_long_splice
+                    .with_a_super_long_method()
+                    .and_an_other_super_super_long_method_to_call_afer()
+                    .unwarp()
+            })
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_element_id,
+        r##"
+        html! {
+        random-element#big-id-that-should-wrap {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                #big-id-that-should-wrap {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_class,
+        r##"
+        html! {
+        random-element.class1.class2.class3 {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                .class1
+                .class2
+                .class3 {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_attrs_empty,
+        r##"
+        html! {
+        random-element data-something-long {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                data-something-long {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_attrs_empty_toggle,
+        r##"
+        html! {
+        random-element data-something[true] {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                data-something[true] {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_attrs_normal,
+        r##"
+        html! {
+        random-element data-something="foo" {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                data-something="foo" {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_attrs_optional,
+        r##"
+        html! {
+        random-element data-something=[toggle] {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                data-something=[toggle] {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_element_body_no_expand,
+        r##"
+        html! {
+            p { 
+                "one line" 
+            }
+        }
+        "##,
+        r##"
+        html! {
+            p { "one line" }
+        }
+        "##
+    );
+
+    // NOTE: literal length is left to the user to deal with
+    test_small_line!(
+        line_length_element_body_expand_one_el,
+        r##"
+        html! {
+            p { "one line very very long omg" }
+        }
+        "##,
+        r##"
+        html! {
+            p {
+                "one line very very long omg"
+            }
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_element_body_no_expand_multi_el,
+        r##"
+        html! {
+            p { 
+                "one"
+                "line"
+            }
+        }
+        "##,
+        r##"
+        html! {
+            p { "one" "line" }
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_element_body_expand_multi_el,
+        r##"
+        html! {
+            p { "one very" "chunky line" }
+        }
+        "##,
+        r##"
+        html! {
+            p {
+                "one very"
+                "chunky line"
+            }
         }
         "##
     );

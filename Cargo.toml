@@ -3,6 +3,10 @@ name = "maudfmt"
 description = "An opinionated yet customizable Maud formatter."
 version = "0.1.2"
 edition = "2024"
+license = "MIT"
+homepage = "https://github.com/jeosas/maudfmt"
+repository = "https://github.com/jeosas/maudfmt"
+readme = "README.md"
 
 [dependencies]
 # keep-sorted start
@@ -19,8 +23,8 @@ syn = { version = "2", features = ["visit", "full", "extra-traits"] }
 
 [dev-dependencies]
 # keep-sorted start
-pretty_assertions = "*"
-predicates = "*"
-assert_fs = "*"
-assert_cmd = "*"
+pretty_assertions = "1"
+predicates = "3"
+assert_fs = "1"
+assert_cmd = "2"
 # keep-sorted end

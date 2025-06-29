@@ -16,7 +16,7 @@
   };
 
   outputs =
-    inputs@{
+    {
       self,
       nixpkgs,
       fenix,
@@ -42,10 +42,26 @@
         ];
     in
     {
+      apps = forAllSystems (
+        system:
+        let
+          toolchain = mkRustToolchain system;
+        in
+        rec {
+          default = maudfmt;
+          maudfmt = {
+            type = "app";
+            program = "${self.packages.${system}.maudfmt}/bin/maudfmt";
+          };
+          cargo = {
+            type = "app";
+            program = "${toolchain}/bin/cargo";
+          };
+        }
+      );
       packages = forAllSystems (
         system:
         let
-          pkgs = import nixpkgs { inherit system; };
           toolchain = mkRustToolchain system;
           naersk' = naersk.lib.${system}.override {
             cargo = toolchain;

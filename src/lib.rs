@@ -534,6 +534,34 @@ mod test {
     );
 
     test_default!(
+        control_while,
+        r#"
+        html! { @while flag {p{"flag is true"}}}
+        "#,
+        r#"
+        html! {
+            @while flag {
+                p { "flag is true" }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_while_let,
+        r#"
+        html! { @while let Some(value) = iter {p{(value)}}}
+        "#,
+        r#"
+        html! {
+            @while let Some(value) = iter {
+                p { (value) }
+            }
+        }
+        "#
+    );
+
+    test_default!(
         comment_inline,
         r##"
         use maud::DOCTYPE;

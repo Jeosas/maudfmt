@@ -422,7 +422,27 @@ impl<'a, 'b> Printer<'a, 'b> {
                 self.write("}");
                 self.print_attr_comment(match_expr.brace_token.span.close().span().end());
             }
-            ControlFlowKind::While(_while_expr) => todo!(),
+            ControlFlowKind::While(while_expr) => {
+                self.write("@while ");
+                match while_expr.cond {
+                    Expr::Let(expr_let) => {
+                        // crashes prettyplease > syn can't parse it
+                        self.write("let ");
+                        self.write(
+                            &unparse_pat(&expr_let.pat, self.base_indent + indent_level).join("\n"),
+                        ); //TODO(jeosas): manage line length
+                        self.write(" = ");
+                        self.print_expr(*expr_let.expr, indent_level);
+                        self.write(" ");
+                    }
+                    _ => {
+                        // usual case
+                        self.print_expr(while_expr.cond, indent_level);
+                        self.write(" ");
+                    }
+                }
+                self.print_block(while_expr.body, indent_level, true);
+            }
         }
     }
 

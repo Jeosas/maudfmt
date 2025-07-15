@@ -49,7 +49,7 @@ pub fn format_source(
                 range: start_byte..end_byte,
                 new_text,
             }),
-            Err(e) => eprintln!("{}", e),
+            Err(e) => eprintln!("{e}"),
         }
     }
 

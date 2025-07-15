@@ -37,7 +37,7 @@ fn main() -> Result<()> {
         };
 
         let formatted_buf = try_fmt_file(&buf, &format_options).unwrap_or(buf);
-        print!("{}", formatted_buf);
+        print!("{formatted_buf}");
     } else {
         match cli.files {
             None => bail!("No files provided while not using stdin mode"),
@@ -60,7 +60,7 @@ fn main() -> Result<()> {
 fn get_file_paths(input_patterns: Vec<String>) -> Result<Vec<PathBuf>> {
     let mut paths: Vec<PathBuf> = Vec::new();
     for pattern in input_patterns.into_iter().map(as_glob_pattern) {
-        for path in glob(&pattern).context(format!("Failed to read glob pattern: {}", pattern))? {
+        for path in glob(&pattern).context(format!("Failed to read glob pattern: {pattern}"))? {
             match path {
                 Ok(value) => paths.push(value),
                 Err(err) => return Err(err).context("glob error"),

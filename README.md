@@ -94,7 +94,7 @@ p { //
 }
 ```
 
-- inside the block itself (soonTM)
+- inside the block itself
 
 ```
 p {
@@ -103,7 +103,7 @@ p {
 }
 ```
 
-> doesn't matter if there is an accual comment, the `//` comment marker is enough.
+> doesn't matter if there is an actual comment, the `//` comment marker is enough.
 
 ## Acknowledgment
 

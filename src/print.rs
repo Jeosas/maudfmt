@@ -327,7 +327,12 @@ impl<'a, 'b> Printer<'a, 'b> {
             match attr_type {
                 AttributeType::Normal { value, .. } => {
                     self.write("=");
-                    self.print_markup(value, indent_level)
+                    let attr_indent = if should_wrap {
+                        indent_level + 1
+                    } else {
+                        indent_level
+                    };
+                    self.print_markup(value, attr_indent)
                 }
                 AttributeType::Optional { toggler, .. } => {
                     self.write("=[");

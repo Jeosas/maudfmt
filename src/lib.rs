@@ -941,6 +941,28 @@ mod test {
         "##
     );
 
+    test_small_line!(
+        indented_multi_line_attribute_value,
+        r#"
+        html! {
+            div test={ "This is a long multi-line attribute." "This is another line in the long attribute value." } {
+                p { "hi" }
+            }
+        }
+        "#,
+        r#"
+        html! {
+            div
+                test={
+                    "This is a long multi-line attribute."
+                    "This is another line in the long attribute value."
+                } {
+                p { "hi" }
+            }
+        }
+        "#
+    );
+
     test_default!(
         semi,
         r#"

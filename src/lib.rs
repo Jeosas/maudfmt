@@ -592,6 +592,24 @@ mod test {
     );
 
     test_default!(
+        comment_empty_block,
+        r#"
+        html!{
+            p {
+                // lonely comment
+            }
+        }
+        "#,
+        r#"
+        html! {
+            p {
+                // lonely comment
+            }
+        }
+        "#
+    );
+
+    test_default!(
         keep_whitespace,
         r##"
         html!{

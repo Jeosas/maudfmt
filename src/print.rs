@@ -114,7 +114,8 @@ impl<'a, 'b> Printer<'a, 'b> {
                 true
             }
         };
-        if block.markups.markups.is_empty() {
+        if block.markups.markups.is_empty() && !self.block_contains_comments(block.brace_token.span)
+        {
             self.write("{}");
             self.print_attr_comment(block.brace_token.span.close().span().end());
         } else if !expand {
@@ -139,10 +140,17 @@ impl<'a, 'b> Printer<'a, 'b> {
         } else {
             self.write("{");
             self.print_attr_comment(block.brace_token.span.open().span().end());
-            for markup in block.markups.markups {
-                self.new_line(indent_level + 1);
-                self.print_markup(markup, indent_level + 1);
+
+            if block.markups.markups.is_empty() {
+                // Handle empty block with comments
+                self.print_block_comments(block.brace_token.span, indent_level + 1);
+            } else {
+                for markup in block.markups.markups {
+                    self.new_line(indent_level + 1);
+                    self.print_markup(markup, indent_level + 1);
+                }
             }
+
             self.new_line(indent_level);
             self.write("}");
             self.print_attr_comment(block.brace_token.span.close().span().end());
@@ -570,6 +578,25 @@ impl<'a, 'b> Printer<'a, 'b> {
             .unwrap_or(&line_string)
             .trim()
             .is_empty()
+    }
+
+    fn print_block_comments(&mut self, delim_span: DelimSpan, indent_level: usize) {
+        // LineColumn.line is 1-indexed
+        let start_line = delim_span.span().start().line - 1;
+        let end_line = delim_span.span().end().line - 1;
+
+        for line_idx in (start_line + 1)..end_line {
+            let line = self.source.line(line_idx);
+            if let Some((_, comment_part)) = line.to_string().split_once("//") {
+                self.new_line(indent_level);
+                self.write("//");
+                let comment = comment_part.trim();
+                if !comment.is_empty() {
+                    self.write(" ");
+                    self.write(comment);
+                }
+            }
+        }
     }
 
     fn block_contains_comments(&self, delim_span: DelimSpan) -> bool {

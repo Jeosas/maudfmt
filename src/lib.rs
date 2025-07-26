@@ -347,7 +347,7 @@ mod test {
     );
 
     test_default!(
-        toggle_optional_artributes,
+        toggle_optional_attributes,
         r#"
         html!{p title=[Some("Good password")]{"Correct horse"}}
         "#,
@@ -951,6 +951,34 @@ mod test {
         r#"
         html! {
             ;
+        }
+        "#
+    );
+
+    test_default!(
+        quoted_attributes,
+        r#"
+        html! {
+            p "class"="bold" { "text" }
+        }
+        "#,
+        r#"
+        html! {
+            p class="bold" { "text" }
+        }
+        "#
+    );
+
+    test_default!(
+        quoted_attributes_special_chars,
+        r#"
+        html! {
+            p "@click.window"="console.log('click')" "x-on:click"="test" ":class"="bold" { "click" }
+        }
+        "#,
+        r#"
+        html! {
+            p "@click.window"="console.log('click')" x-on:click="test" ":class"="bold" { "click" }
         }
         "#
     );

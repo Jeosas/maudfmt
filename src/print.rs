@@ -101,6 +101,15 @@ impl<'a, 'b> Printer<'a, 'b> {
         }
     }
 
+    fn print_html_attribute_name(&mut self, name: &HtmlName) {
+        let value = name.to_string();
+        if value.contains('@') || value.contains('.') || value.starts_with(":") {
+            self.write(&quote!(#value).to_string());
+        } else {
+            self.write(&value);
+        }
+    }
+
     fn print_block<E: Into<Element>>(&mut self, block: Block<E>, indent_level: usize) {
         self.print_inline_comment_and_whitespace(
             block.brace_token.span.span().start(),
@@ -323,7 +332,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             } else {
                 self.write(" ");
             }
-            self.write(&name.to_string());
+            self.print_html_attribute_name(&name);
             match attr_type {
                 AttributeType::Normal { value, .. } => {
                     self.write("=");

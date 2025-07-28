@@ -1080,4 +1080,64 @@ mod test {
         }
         "#
     );
+
+    test_default!(
+        rustfmt_skip,
+        r#"
+        #[rustfmt::skip]
+        html! {
+        p { }
+        }
+        "#,
+        r#"
+        #[rustfmt::skip]
+        html! {
+        p { }
+        }
+        "#
+    );
+
+    test_default!(
+        rustfmt_skip_only_one,
+        r#"
+        html! {
+        p { }
+        }
+
+        #[rustfmt::skip]
+        html! {
+        p { }
+        }
+
+        html! {
+        p { }
+        }
+        "#,
+        r#"
+        html! {
+            p {}
+        }
+
+        #[rustfmt::skip]
+        html! {
+        p { }
+        }
+
+        html! {
+            p {}
+        }
+        "#
+    );
+
+    test_default!(
+        rustfmt_skip_one_liner,
+        r#"
+        #[rustfmt::skip]
+        html! {p{}}
+        "#,
+        r#"
+        #[rustfmt::skip]
+        html! {p{}}
+        "#
+    );
 }

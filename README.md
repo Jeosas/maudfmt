@@ -79,6 +79,25 @@ require("conform").setup({
 
 ## Tips and Tricks
 
+### Skip formatting for a macro
+
+There are several reasons you might not want a specific macro block to be formatted:
+
+- You'd like to keep the macro block as a one liner _(might be supported in the future)_
+- You'd like to format it yourself
+- `maudfmt` is broken and you'd like to keep the format in check while the issue is investigated.
+
+To do so, just add the `rustfmt::skip` attribute to the macro block.
+
+```
+#[rustfmt::skip]
+html! {
+p {
+  "my personal formatting"
+  }
+}
+```
+
 ### Magic comments
 
 _maudfmt_ automatically manages exanding and collapsing blocks depending on line length.

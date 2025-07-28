@@ -513,12 +513,14 @@ impl<'a, 'b> Printer<'a, 'b> {
             .to_string()
             .split_once("//")
             .map(|(_, txt)| txt)
-            .map(str::trim)
+            .map(str::trim_end)
             .map(str::to_string)
         {
             self.write("  //");
             if !comment.is_empty() {
-                self.write(" ");
+                if !comment.starts_with(" ") {
+                    self.write(" ");
+                }
                 self.write(&comment);
             }
             return true;
@@ -561,7 +563,9 @@ impl<'a, 'b> Printer<'a, 'b> {
         while let Some(comment) = comments.pop() {
             self.write("//");
             if !comment.is_empty() {
-                self.write(" ");
+                if !comment.starts_with(" ") {
+                    self.write(" ");
+                }
                 self.write(&comment);
             }
             self.new_line(indent_level);
@@ -604,9 +608,11 @@ impl<'a, 'b> Printer<'a, 'b> {
             if let Some((_, comment_part)) = line.to_string().split_once("//") {
                 self.new_line(indent_level);
                 self.write("//");
-                let comment = comment_part.trim();
+                let comment = comment_part.trim_end();
                 if !comment.is_empty() {
-                    self.write(" ");
+                    if !comment.starts_with(" ") {
+                        self.write(" ");
+                    }
                     self.write(comment);
                 }
             }
@@ -639,7 +645,7 @@ fn extract_inline_comment(line: RopeSlice) -> Option<String> {
         line_string
             .split_once("//")
             .map(|(_, txt)| txt)
-            .map(str::trim)
+            .map(str::trim_end)
             .map(str::to_string)
     } else {
         None

@@ -1022,4 +1022,62 @@ mod test {
         }
         "#
     );
+
+    test_default!(
+        keep_indents_in_comments_attrs,
+        r#"
+        html! {
+        // p {
+        //     "pls keep indent"
+        // }
+        p { }
+        }
+        "#,
+        r#"
+        html! {
+            // p {
+            //     "pls keep indent"
+            // }
+            p {}
+        }
+        "#
+    );
+
+    test_default!(
+        keep_indents_in_comments_blocks,
+        r#"
+        html! {
+        p { 
+        // p {
+        //     "pls keep indent"
+        // }
+        }
+        }
+        "#,
+        r#"
+        html! {
+            p {
+                // p {
+                //     "pls keep indent"
+                // }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        ensure_leading_space_in_comments,
+        r#"
+        html! {
+        //please add leading space
+        p { }
+        }
+        "#,
+        r#"
+        html! {
+            // please add leading space
+            p {}
+        }
+        "#
+    );
 }

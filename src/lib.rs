@@ -610,6 +610,26 @@ mod test {
     );
 
     test_default!(
+        comment_end_block,
+        r#"
+        html! {
+            p {
+                "test"
+                // trailing comment
+            }
+        }
+        "#,
+        r#"
+        html! {
+            p {
+                "test"
+                // trailing comment
+            }
+        }
+        "#
+    );
+
+    test_default!(
         keep_whitespace,
         r##"
         html!{

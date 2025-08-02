@@ -1140,4 +1140,26 @@ mod test {
         html! {p{}}
         "#
     );
+
+    test_default!(
+        blank_line_above_splice,
+        r#"
+        html!{
+            .test {
+
+            .test3 {
+
+            (a)
+            }
+            }
+        } 
+        "#,
+        r#"
+        html! {
+            .test {
+                .test3 { (a) }
+            }
+        } 
+        "#
+    );
 }

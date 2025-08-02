@@ -64,6 +64,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                 self.new_line(indent_level + 1);
                 self.print_markup(markup, indent_level + 1);
             }
+            self.print_trailing_comments(*self.mac.macro_.delimiter.span(), indent_level + 1);
             self.new_line(indent_level);
 
             let close_location = self.mac.macro_.delimiter.span().close().end();
@@ -399,7 +400,7 @@ impl<'a, 'b> Printer<'a, 'b> {
         indent_level: usize,
     ) {
         self.print_inline_comment_and_whitespace(
-            control_flow.at_token.span.span().end(),
+            control_flow.at_token.span.span().start(),
             indent_level,
         );
         match control_flow.kind {
@@ -436,6 +437,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                     self.write(" => ");
                     self.print_markup(arm.body, indent_level + 1);
                 }
+                self.print_trailing_comments(match_expr.brace_token.span, indent_level + 1);
                 self.new_line(indent_level);
                 self.write("}");
                 self.print_attr_comment(match_expr.brace_token.span.close().span().end());

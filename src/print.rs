@@ -231,6 +231,37 @@ impl<'a, 'b> Printer<'a, 'b> {
         }
     }
 
+    fn print_toggle_expr(&mut self, expr: Expr, indent_level: usize) {
+        match expr {
+            Expr::Block(expr_block) => {
+                let lines =
+                    unparse_stmts(&expr_block.block.stmts, self.base_indent + indent_level + 1);
+
+                if lines.is_empty() || (lines.len() == 1 && lines[0].trim().is_empty()) {
+                    self.write("{}");
+                } else {
+                    self.write("{\n");
+                    self.write(&lines.join("\n"));
+                    self.new_line(indent_level + 1);
+                    self.write("}");
+                }
+            }
+            _ => {
+                let lines = unparse_expr(&expr, self.base_indent + indent_level + 1);
+
+                match lines.len() {
+                    0 => (),
+                    1 => self.write(lines[0].trim()),
+                    _ => {
+                        self.write("\n");
+                        self.write(&lines.join("\n"));
+                        self.new_line(indent_level + 1);
+                    }
+                }
+            }
+        }
+    }
+
     fn print_element_with_contents(
         &mut self,
         Element { name, attrs, body }: Element,
@@ -321,14 +352,9 @@ impl<'a, 'b> Printer<'a, 'b> {
             }
             if let Some(toggler) = maybe_toggler {
                 self.write("[");
-                if self.print_attr_comment(toggler.bracket_token.span.open().span().end()) {
-                    self.print_expr(toggler.cond, indent_level + 1);
-                    self.new_line(indent_level);
-                    self.write("]");
-                } else {
-                    self.print_expr(toggler.cond, indent_level);
-                    self.write("]");
-                }
+                self.print_attr_comment(toggler.bracket_token.span.open().span().end());
+                self.print_toggle_expr(toggler.cond, indent_level);
+                self.write("]");
                 self.print_attr_comment(toggler.bracket_token.span.close().span().end());
             }
         }
@@ -353,27 +379,17 @@ impl<'a, 'b> Printer<'a, 'b> {
                 }
                 AttributeType::Optional { toggler, .. } => {
                     self.write("=[");
-                    if self.print_attr_comment(toggler.bracket_token.span.open().span().end()) {
-                        self.print_expr(toggler.cond, indent_level + 1);
-                        self.new_line(indent_level);
-                        self.write("]");
-                    } else {
-                        self.print_expr(toggler.cond, indent_level);
-                        self.write("]");
-                    }
+                    self.print_attr_comment(toggler.bracket_token.span.open().span().end());
+                    self.print_toggle_expr(toggler.cond, indent_level);
+                    self.write("]");
                     self.print_attr_comment(toggler.bracket_token.span.close().span().end());
                 }
                 AttributeType::Empty(maybe_toggler) => {
                     if let Some(toggler) = maybe_toggler {
                         self.write("[");
-                        if self.print_attr_comment(toggler.bracket_token.span.open().span().end()) {
-                            self.print_expr(toggler.cond, indent_level + 1);
-                            self.new_line(indent_level);
-                            self.write("]");
-                        } else {
-                            self.print_expr(toggler.cond, indent_level);
-                            self.write("]");
-                        }
+                        self.print_attr_comment(toggler.bracket_token.span.open().span().end());
+                        self.print_toggle_expr(toggler.cond, indent_level);
+                        self.write("]");
                         self.print_attr_comment(toggler.bracket_token.span.close().span().end());
                     }
                 }

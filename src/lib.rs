@@ -1140,4 +1140,51 @@ mod test {
         html! {p{}}
         "#
     );
+
+    test_default!(
+        multiline_attribute_toggle_expression,
+        r#"
+        html! {
+            input checked[example_rust_condition().unwrap().map(|x| x.to_string()).unwrap_or_default() == some_long_testing_variable_name];
+        }
+        "#,
+        r#"
+        html! {
+            input
+                checked[
+                    example_rust_condition()
+                        .unwrap()
+                        .map(|x| x.to_string())
+                        .unwrap_or_default() == some_long_testing_variable_name
+                ];
+        }
+        "#
+    );
+
+    test_default!(
+        multiline_attribute_toggle_block,
+        r#"
+        html! {
+            input checked
+                disabled[{let x = example_rust_condition().unwrap().map(|x| x.to_string()).unwrap_or_default() == some_long_testing_variable_name; let _y = example_rust_condition().unwrap().map(|x| x.to_string()).unwrap_or_default() == some_long_testing_variable_name; x}];
+        }
+        "#,
+        r#"
+        html! {
+            input
+                checked
+                disabled[{
+                    let x = example_rust_condition()
+                        .unwrap()
+                        .map(|x| x.to_string())
+                        .unwrap_or_default() == some_long_testing_variable_name;
+                    let _y = example_rust_condition()
+                        .unwrap()
+                        .map(|x| x.to_string())
+                        .unwrap_or_default() == some_long_testing_variable_name;
+                    x
+                }];
+        }
+        "#
+    );
 }

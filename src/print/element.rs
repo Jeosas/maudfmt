@@ -207,3 +207,476 @@ impl<'a, 'b> Printer<'a, 'b> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::testing::*;
+
+    test_default!(
+        elements_with_contents,
+        r#"
+        html! { h1 { "Poem" } p { strong { "Rock," } " you are a rock."}}
+        "#,
+        r#"
+        html! {
+            h1 { "Poem" }
+            p {
+                strong { "Rock," }
+                " you are a rock."
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        void_element,
+        r#"
+        html! {
+          p { "Rock, you are a rock." br; "Gray, you are gray," br;
+            "Like a rock, which you are." br; "Rock." } }
+        "#,
+        r#"
+        html! {
+            p {
+                "Rock, you are a rock."
+                br;
+                "Gray, you are gray,"
+                br;
+                "Like a rock, which you are."
+                br;
+                "Rock."
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        custom_elements_and_attributes,
+        r#"
+        html! {
+          article data-index="12345"{h1 { "My blog"}tag-cloud {"pinkie pie pony cute"}}}
+        "#,
+        r#"
+        html! {
+            article data-index="12345" {
+                h1 { "My blog" }
+                tag-cloud { "pinkie pie pony cute" }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        non_empty_attributes,
+        r#"
+        html! { ul { li { a href="about:blank" { "Apple Bloom" } }
+        li class="lower-middle" { "Sweetie Belle" }
+        li dir="rtl" { "Scootaloo " small { "(also a chicken)" } } } }
+        "#,
+        r#"
+        html! {
+            ul {
+                li {
+                    a href="about:blank" { "Apple Bloom" }
+                }
+                li class="lower-middle" { "Sweetie Belle" }
+                li dir="rtl" {
+                    "Scootaloo "
+                    small { "(also a chicken)" }
+                }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        empty_attributes,
+        r#"
+        html! { form { input type="checkbox" name="cupcakes" checked;
+        " " label for="cupcakes" { "Do you like cupcakes?" } } }
+        "#,
+        r#"
+        html! {
+            form {
+                input type="checkbox" name="cupcakes" checked;
+                " "
+                label for="cupcakes" { "Do you like cupcakes?" }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        classes_and_ids,
+        r#"
+        html! { input#cannon .big.scary.bright-red type="button" value="Launch Party Cannon"; }
+        "#,
+        r#"
+        html! {
+            input #cannon.big.scary.bright-red type="button" value="Launch Party Cannon";
+        }
+        "#
+    );
+
+    test_default!(
+        quoted_class_and_ids,
+        r#"
+        html!{div   #"quoted-id"   ."col-sm-2" { "Bootstrap column!" } }
+        "#,
+        r#"
+        html! {
+            div #"quoted-id"."col-sm-2" { "Bootstrap column!" }
+        }
+        "#
+    );
+
+    test_default!(
+        implicit_div,
+        r#"
+        html! { #main { "Main content!" .tip { 
+        "Storing food in a refrigerator can make it 20% cooler." } } }
+        "#,
+        r#"
+        html! {
+            #main {
+                "Main content!"
+                .tip { "Storing food in a refrigerator can make it 20% cooler." }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        splice_in_attributes,
+        r#"
+        html!{p title=  (secret_message){"Nothing to see here, move along."}}
+        "#,
+        r#"
+        html! {
+            p title=(secret_message) { "Nothing to see here, move along." }
+        }
+        "#
+    );
+
+    test_default!(
+        splice_concatenation,
+        r#"
+        html!{a href={(GITHUB)"/lambda-fairy/maud"}{"Fork me on GitHub"}}
+        "#,
+        r#"
+        html! {
+            a href={ (GITHUB) "/lambda-fairy/maud" } { "Fork me on GitHub" }
+        }
+        "#
+    );
+
+    test_default!(
+        splice_classes_and_ids,
+        r#"
+        html!{aside #(name){p.{ "color-"(severity)}{"This is the worst! Possible! Thing!"}}}
+        "#,
+        r#"
+        html! {
+            aside #(name) {
+                p.{ "color-" (severity) } { "This is the worst! Possible! Thing!" }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        toggle_empty_attributes,
+        r#"
+        html!{p contenteditable[allow_editing]{"Edit me, I " em{"dare"}" you."}}
+        "#,
+        r#"
+        html! {
+            p contenteditable[allow_editing] {
+                "Edit me, I "
+                em { "dare" }
+                " you."
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        toggle_classes,
+        r#"
+        html!{p.cute[cuteness>50]{"Squee!"}}
+        "#,
+        r#"
+        html! {
+            p.cute[cuteness > 50] { "Squee!" }
+        }
+        "#
+    );
+
+    test_default!(
+        toggle_optional_attributes,
+        r#"
+        html!{p title=[Some("Good password")]{"Correct horse"}}
+        "#,
+        r#"
+        html! {
+            p title=[Some("Good password")] { "Correct horse" }
+        }
+        "#
+    );
+
+    test_small_line!(
+        line_length_element_id,
+        r##"
+        html! {
+        random-element#big-id-that-should-wrap {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                #big-id-that-should-wrap {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_class,
+        r##"
+        html! {
+        random-element.class1.class2.class3 {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                .class1
+                .class2
+                .class3 {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_attrs_empty,
+        r##"
+        html! {
+        random-element data-something-long {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                data-something-long {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_attrs_empty_toggle,
+        r##"
+        html! {
+        random-element data-something[true] {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                data-something[true] {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_attrs_normal,
+        r##"
+        html! {
+        random-element data-something="foo" {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                data-something="foo" {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_attrs_optional,
+        r##"
+        html! {
+        random-element data-something=[toggle] {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                data-something=[toggle] {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_element_body_no_expand,
+        r##"
+        html! {
+            p { 
+                "one line" 
+            }
+        }
+        "##,
+        r##"
+        html! {
+            p { "one line" }
+        }
+        "##
+    );
+
+    // NOTE: literal length is left to the user to deal with
+    test_small_line!(
+        line_length_element_body_expand_one_el,
+        r##"
+        html! {
+            p { "one line very very long omg" }
+        }
+        "##,
+        r##"
+        html! {
+            p {
+                "one line very very long omg"
+            }
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_element_body_no_expand_multi_el,
+        r##"
+        html! {
+            p { 
+                "one"
+                "line"
+            }
+        }
+        "##,
+        r##"
+        html! {
+            p { "one" "line" }
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_element_body_expand_multi_el,
+        r##"
+        html! {
+            p { "one very" "chunky line" }
+        }
+        "##,
+        r##"
+        html! {
+            p {
+                "one very"
+                "chunky line"
+            }
+        }
+        "##
+    );
+
+    test_small_line!(
+        indented_multi_line_attribute_value,
+        r#"
+        html! {
+            div test={ "This is a long multi-line attribute." "This is another line in the long attribute value." } {
+                p { "hi" }
+            }
+        }
+        "#,
+        r#"
+        html! {
+            div
+                test={
+                    "This is a long multi-line attribute."
+                    "This is another line in the long attribute value."
+                } {
+                p { "hi" }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        quoted_attributes,
+        r#"
+        html! {
+            p "class"="bold" { "text" }
+        }
+        "#,
+        r#"
+        html! {
+            p class="bold" { "text" }
+        }
+        "#
+    );
+
+    test_default!(
+        quoted_attributes_special_chars,
+        r#"
+        html! {
+            p "@click.window"="console.log('click')" "x-on:click"="test" ":class"="bold" { "click" }
+        }
+        "#,
+        r#"
+        html! {
+            p "@click.window"="console.log('click')" x-on:click="test" ":class"="bold" { "click" }
+        }
+        "#
+    );
+
+    test_default!(
+        multiline_attribute_toggle_expression,
+        r#"
+        html! {
+            input checked[example_rust_condition().unwrap().map(|x| x.to_string()).unwrap_or_default() == some_long_testing_variable_name];
+        }
+        "#,
+        r#"
+        html! {
+            input
+                checked[
+                    example_rust_condition()
+                        .unwrap()
+                        .map(|x| x.to_string())
+                        .unwrap_or_default() == some_long_testing_variable_name
+                ];
+        }
+        "#
+    );
+
+    test_default!(
+        multiline_attribute_toggle_block,
+        r#"
+        html! {
+            input checked
+                disabled[{let x = example_rust_condition().unwrap().map(|x| x.to_string()).unwrap_or_default() == some_long_testing_variable_name; let _y = example_rust_condition().unwrap().map(|x| x.to_string()).unwrap_or_default() == some_long_testing_variable_name; x}];
+        }
+        "#,
+        r#"
+        html! {
+            input
+                checked
+                disabled[{
+                    let x = example_rust_condition()
+                        .unwrap()
+                        .map(|x| x.to_string())
+                        .unwrap_or_default() == some_long_testing_variable_name;
+                    let _y = example_rust_condition()
+                        .unwrap()
+                        .map(|x| x.to_string())
+                        .unwrap_or_default() == some_long_testing_variable_name;
+                    x
+                }];
+        }
+        "#
+    );
+}

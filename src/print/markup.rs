@@ -26,3 +26,22 @@ impl<'a, 'b> Printer<'a, 'b> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::testing::*;
+
+    test_default!(
+        semi,
+        r#"
+        html! {
+        ;
+        }
+        "#,
+        r#"
+        html! {
+            ;
+        }
+        "#
+    );
+}

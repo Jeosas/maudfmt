@@ -114,3 +114,225 @@ impl<'a, 'b> Printer<'a, 'b> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::testing::*;
+
+    test_default!(
+        control_if,
+        r#"
+        html! { @if user == Princess::Luna {h1{"Super secret woona to-do list"}
+        ul{li{"Nuke the Crystal Empire"}li{"Kick a puppy"}li{"Evil laugh"}}}}
+        "#,
+        r#"
+        html! {
+            @if user == Princess::Luna {
+                h1 { "Super secret woona to-do list" }
+                ul {
+                    li { "Nuke the Crystal Empire" }
+                    li { "Kick a puppy" }
+                    li { "Evil laugh" }
+                }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_if_else,
+        r#"
+        html! { @if user == Princess::Luna {h1{"Super secret woona to-do list"}
+        ul{li{"Nuke the Crystal Empire"}li{"Kick a puppy"}li{"Evil laugh"}}}
+        @else { p { "Nothing to see here; move along." } }}
+        "#,
+        r#"
+        html! {
+            @if user == Princess::Luna {
+                h1 { "Super secret woona to-do list" }
+                ul {
+                    li { "Nuke the Crystal Empire" }
+                    li { "Kick a puppy" }
+                    li { "Evil laugh" }
+                }
+            } @else {
+                p { "Nothing to see here; move along." }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_if_elseif_else,
+        r#"
+        html! { @if user == Princess::Luna {h1{"Super secret woona to-do list"}
+        ul{li{"Nuke the Crystal Empire"}li{"Kick a puppy"}li{"Evil laugh"}}}
+        @else if user==Princess::Celestia{p{"Sister, please stop reading my diary. It's rude."}}
+        @else { p { "Nothing to see here; move along." } }}
+        "#,
+        r#"
+        html! {
+            @if user == Princess::Luna {
+                h1 { "Super secret woona to-do list" }
+                ul {
+                    li { "Nuke the Crystal Empire" }
+                    li { "Kick a puppy" }
+                    li { "Evil laugh" }
+                }
+            } @else if user == Princess::Celestia {
+                p { "Sister, please stop reading my diary. It's rude." }
+            } @else {
+                p { "Nothing to see here; move along." }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        if_let,
+        r#"
+        html! { p { "Hello, " @if let Some(name) = user { (name) } @else { "stranger" } "!"}}
+        "#,
+        r#"
+        html! {
+            p {
+                "Hello, "
+                @if let Some(name) = user { (name) } @else { "stranger" }
+                "!"
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_for,
+        r#"
+        html!{p{"My favorite ponies are:"}ol{@for name in &names{li{(name)}}}}
+        "#,
+        r#"
+        html! {
+            p { "My favorite ponies are:" }
+            ol {
+                @for name in &names {
+                    li { (name) }
+                }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_let,
+        r#"
+        html!{@for name in &names{@let first_letter=name.chars().next().unwrap();
+        p{"The first letter of " b{(name)}" is " b{(first_letter)}"."}}}
+        "#,
+        r#"
+        html! {
+            @for name in &names {
+                @let first_letter = name.chars().next().unwrap();
+                p {
+                    "The first letter of "
+                    b { (name) }
+                    " is "
+                    b { (first_letter) }
+                    "."
+                }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_match,
+        r#"
+        html! { @match user { Princess::Luna => { h1 { "Super secret woona to-do list" } ul { li {
+        "Nuke the Crystal Empire" } li { "Kick a puppy" } li { "Evil laugh" } } }, 
+        Princess::Celestia => { p { "Sister, please stop reading my diary. It's rude." } }, _ => p
+        { "Nothing to see here; move along." } } }
+        "#,
+        r#"
+        html! {
+            @match user {
+                Princess::Luna => {
+                    h1 { "Super secret woona to-do list" }
+                    ul {
+                        li { "Nuke the Crystal Empire" }
+                        li { "Kick a puppy" }
+                        li { "Evil laugh" }
+                    }
+                }
+                Princess::Celestia => {
+                    p { "Sister, please stop reading my diary. It's rude." }
+                }
+                _ => p { "Nothing to see here; move along." }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_match_with_guard,
+        r#"
+        html!{@match user{Princess::Luna if !is_asleep=>{h1{"Title"}
+        h2{"Subtitle"}} _=>p{"Nothing to see here; move along."}}}
+        "#,
+        r#"
+        html! {
+            @match user {
+                Princess::Luna if !is_asleep => {
+                    h1 { "Title" }
+                    h2 { "Subtitle" }
+                }
+                _ => p { "Nothing to see here; move along." }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_while,
+        r#"
+        html! { @while flag {p{"flag is true"}}}
+        "#,
+        r#"
+        html! {
+            @while flag {
+                p { "flag is true" }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_while_let,
+        r#"
+        html! { @while let Some(value) = iter {p{(value)}}}
+        "#,
+        r#"
+        html! {
+            @while let Some(value) = iter {
+                p { (value) }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        comment_inline,
+        r##"
+        use maud::DOCTYPE;
+        html!{
+        // <!DOCTYPE html>
+        (DOCTYPE)
+        }
+        "##,
+        r##"
+        use maud::DOCTYPE;
+        html! {
+            // <!DOCTYPE html>
+            (DOCTYPE)
+        }
+        "##
+    );
+}

@@ -114,3 +114,68 @@ pub fn collect_macros_from_file<'a>(
 
     (macro_visitor.source, macro_visitor.macros)
 }
+
+#[cfg(test)]
+mod test {
+    use crate::testing::*;
+
+    test_default!(
+        rustfmt_skip,
+        r#"
+        #[rustfmt::skip]
+        html! {
+        p { }
+        }
+        "#,
+        r#"
+        #[rustfmt::skip]
+        html! {
+        p { }
+        }
+        "#
+    );
+
+    test_default!(
+        rustfmt_skip_only_one,
+        r#"
+        html! {
+        p { }
+        }
+
+        #[rustfmt::skip]
+        html! {
+        p { }
+        }
+
+        html! {
+        p { }
+        }
+        "#,
+        r#"
+        html! {
+            p {}
+        }
+
+        #[rustfmt::skip]
+        html! {
+        p { }
+        }
+
+        html! {
+            p {}
+        }
+        "#
+    );
+
+    test_default!(
+        rustfmt_skip_one_liner,
+        r#"
+        #[rustfmt::skip]
+        html! {p{}}
+        "#,
+        r#"
+        #[rustfmt::skip]
+        html! {p{}}
+        "#
+    );
+}

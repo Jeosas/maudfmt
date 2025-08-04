@@ -32,3 +32,110 @@ impl<'a, 'b> Printer<'a, 'b> {
         self.print_attr_comment(paren.span.close().span().end());
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::testing::*;
+
+    test_default!(
+        escaping,
+        r#"
+        use maud::PreEscaped;
+        html!{"<script>alert(\"XSS\")</script>" (PreEscaped("<script>alert(\"XSS\")</script>"))}
+        "#,
+        r#"
+        use maud::PreEscaped;
+        html! {
+            "<script>alert(\"XSS\")</script>"
+            (PreEscaped("<script>alert(\"XSS\")</script>"))
+        }
+        "#
+    );
+
+    test_default!(
+        doctype,
+        r#"
+        use maud::DOCTYPE;
+        html!{(DOCTYPE)}
+        "#,
+        r#"
+        use maud::DOCTYPE;
+        html! {
+            (DOCTYPE)
+        }
+        "#
+    );
+
+    test_default!(
+        splices,
+        r#"
+        html! { p { "Hi, " (best_pony) "!" }
+            p{"I have "(numbers.len())" numbers, ""and the first one is "(numbers[0])}}
+        "#,
+        r#"
+        html! {
+            p { "Hi, " (best_pony) "!" }
+            p { "I have " (numbers.len()) " numbers, " "and the first one is " (numbers[0]) }
+        }
+        "#
+    );
+
+    test_default!(
+        splices_block,
+        r#"
+        html!{p{({
+        let f: Foo = something_convertible_to_foo()?; f.time().format("%H%Mh") })}}
+        "#,
+        r#"
+        html! {
+            p {
+                ({
+                    let f: Foo = something_convertible_to_foo()?;
+                    f.time().format("%H%Mh")
+                })
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        line_length_long_splice,
+        r##"
+        html! {
+            (super_long_splice.with_a_super_long_method().and_an_other_super_super_long_method_to_call_afer().unwarp())
+        }
+        "##,
+        r##"
+        html! {
+            ({
+                super_long_splice
+                    .with_a_super_long_method()
+                    .and_an_other_super_super_long_method_to_call_afer()
+                    .unwarp()
+            })
+        }
+        "##
+    );
+
+    test_default!(
+        blank_line_above_splice,
+        r#"
+        html!{
+            .test {
+
+            .test3 {
+
+            (a)
+            }
+            }
+        }
+        "#,
+        r#"
+        html! {
+            .test {
+                .test3 { (a) }
+            }
+        }
+        "#
+    );
+}

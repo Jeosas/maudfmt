@@ -89,3 +89,16 @@ impl<'a, 'b> Printer<'a, 'b> {
         self.lines.join("\n")
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::testing::*;
+
+    test_default!(empty, "html!{ }", "html! {}");
+
+    test_default!(
+        empty_full_macro_declaration,
+        "maud::html!{ }",
+        "maud::html! {}"
+    );
+}

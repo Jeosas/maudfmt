@@ -70,3 +70,25 @@ impl<'a, 'b> Printer<'a, 'b> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::testing::*;
+
+    test_default!(
+        if_let_chain,
+        r#"
+            html! { @if let Some(x) = Some(1) && x > 0 { "test" }
+                p {
+                    "test"
+                }
+            }
+        "#,
+        r#"
+            html! {
+                @if let Some(x) = Some(1) && x > 0 { "test" }
+                p { "test" }
+            }
+        "#
+    );
+}

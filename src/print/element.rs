@@ -177,7 +177,11 @@ impl<'a, 'b> Printer<'a, 'b> {
                 self.print_attr_comment(semi.span().end());
             }
             ElementBody::Block(block) => {
-                self.write(" ");
+                if should_wrap && !block.markups.markups.is_empty() {
+                    self.new_line(indent_level);
+                } else {
+                    self.write(" ");
+                }
                 self.print_block(block, indent_level);
             }
         }
@@ -425,6 +429,39 @@ mod test {
     );
 
     test_small_line!(
+        line_length_element_empty,
+        r##"
+        html! {
+        random-element#big-id-that-should-wrap {}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                #big-id-that-should-wrap {}
+        }
+        "##
+    );
+
+    test_small_line!(
+        line_length_element_not_empty,
+        r##"
+        html! {
+        random-element#big-id-that-should-wrap {p{"Hello"}}
+        }
+        "##,
+        r##"
+        html! {
+            random-element
+                #big-id-that-should-wrap
+            {
+                p { "Hello" }
+            }
+        }
+        "##
+    );
+
+    test_small_line!(
         line_length_element_id,
         r##"
         html! {
@@ -598,7 +635,8 @@ mod test {
                 test={
                     "This is a long multi-line attribute."
                     "This is another line in the long attribute value."
-                } {
+                }
+            {
                 p { "hi" }
             }
         }

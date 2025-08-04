@@ -80,7 +80,7 @@ fn format_macro(mac: &MaudMacro, source: &Rope, options: &FormatOptions) -> Resu
     Ok(print(markups, mac, source, options))
 }
 
-fn line_column_to_byte(source: &Rope, point: proc_macro2::LineColumn) -> usize {
+pub fn line_column_to_byte(source: &Rope, point: proc_macro2::LineColumn) -> usize {
     let line_byte = source.byte_of_line(point.line - 1);
     let line = source.line(point.line - 1);
     let char_byte: usize = line.chars().take(point.column).map(|c| c.len_utf8()).sum();

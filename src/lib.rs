@@ -1140,4 +1140,21 @@ mod test {
         html! {p{}}
         "#
     );
+
+    test_default!(
+        if_let_chain,
+        r#"
+            html! { @if let Some(x) = Some(1) && x > 0 { "test" }
+                p {
+                    "test"
+                }
+            }
+        "#,
+        r#"
+            html! {
+                @if let Some(x) = Some(1) && x > 0 { "test" }
+                p { "test" }
+            }
+        "#
+    );
 }

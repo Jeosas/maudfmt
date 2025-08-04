@@ -7,7 +7,13 @@ use syn::{
     token::{Dot, Paren, Pound},
 };
 
-use crate::{ast::*, collect::MaudMacro, format::FormatOptions, line_length::*, unparse::*};
+use crate::{
+    ast::*,
+    collect::MaudMacro,
+    format::{FormatOptions, line_column_to_byte},
+    line_length::*,
+    unparse::*,
+};
 
 pub fn print<'b>(
     ast: Markups<Element>,
@@ -212,11 +218,23 @@ impl<'a, 'b> Printer<'a, 'b> {
     }
 
     fn print_expr(&mut self, expr: Expr, indent_level: usize) {
-        let lines: Vec<String> = match expr {
+        let span = expr.span();
+        let lines: Vec<String> = match std::panic::catch_unwind(|| match expr {
             Expr::Block(expr_block) => {
                 unparse_stmts(&expr_block.block.stmts, self.base_indent + indent_level)
             }
             _ => unparse_expr(&expr, self.base_indent + indent_level),
+        }) {
+            Ok(lines) => lines,
+            Err(_) => {
+                let start_byte = line_column_to_byte(self.source, span.start());
+                let end_byte = line_column_to_byte(self.source, span.end());
+                let original_text = self.source.byte_slice(start_byte..end_byte).to_string();
+                eprintln!(
+                    "Warning: prettyplease panicked formatting expression, leaving unchanged: {original_text}"
+                );
+                vec![original_text]
+            }
         };
 
         match lines.len() {

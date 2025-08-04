@@ -1038,10 +1038,6 @@ mod test {
     );
 
     test_default!(
-Commits 1
-Checks 1
-Files changed 3
-
         quoted_attributes,
         r#"
         html! {
@@ -1201,6 +1197,8 @@ Files changed 3
                 @if let Some(x) = Some(1) && x > 0 { "test" }
                 p { "test" }
             }
+        "#
+    );
 
     test_default!(
         comments_before_after_elements,

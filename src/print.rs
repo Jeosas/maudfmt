@@ -70,6 +70,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                 self.new_line(indent_level + 1);
                 self.print_markup(markup, indent_level + 1);
             }
+            self.print_trailing_comments(*self.mac.macro_.delimiter.span(), indent_level + 1);
             self.new_line(indent_level);
 
             let close_location = self.mac.macro_.delimiter.span().close().end();
@@ -164,6 +165,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                     self.new_line(indent_level + 1);
                     self.print_markup(markup, indent_level + 1);
                 }
+                self.print_trailing_comments(block.brace_token.span, indent_level + 1);
             }
 
             self.new_line(indent_level);
@@ -416,7 +418,7 @@ impl<'a, 'b> Printer<'a, 'b> {
         indent_level: usize,
     ) {
         self.print_inline_comment_and_whitespace(
-            control_flow.at_token.span.span().end(),
+            control_flow.at_token.span.span().start(),
             indent_level,
         );
         match control_flow.kind {
@@ -453,6 +455,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                     self.write(" => ");
                     self.print_markup(arm.body, indent_level + 1);
                 }
+                self.print_trailing_comments(match_expr.brace_token.span, indent_level + 1);
                 self.new_line(indent_level);
                 self.write("}");
                 self.print_attr_comment(match_expr.brace_token.span.close().span().end());
@@ -534,13 +537,8 @@ impl<'a, 'b> Printer<'a, 'b> {
             .map(str::trim_end)
             .map(str::to_string)
         {
-            self.write("  //");
-            if !comment.is_empty() {
-                if !comment.starts_with(" ") {
-                    self.write(" ");
-                }
-                self.write(&comment);
-            }
+            self.write("  ");
+            self.write_comment_text(&comment);
             return true;
         }
 
@@ -579,13 +577,7 @@ impl<'a, 'b> Printer<'a, 'b> {
         }
 
         while let Some(comment) = comments.pop() {
-            self.write("//");
-            if !comment.is_empty() {
-                if !comment.starts_with(" ") {
-                    self.write(" ");
-                }
-                self.write(&comment);
-            }
+            self.write_comment_text(&comment);
             self.new_line(indent_level);
         }
     }
@@ -624,15 +616,7 @@ impl<'a, 'b> Printer<'a, 'b> {
         for line_idx in (start_line + 1)..end_line {
             let line = self.source.line(line_idx);
             if let Some((_, comment_part)) = line.to_string().split_once("//") {
-                self.new_line(indent_level);
-                self.write("//");
-                let comment = comment_part.trim_end();
-                if !comment.is_empty() {
-                    if !comment.starts_with(" ") {
-                        self.write(" ");
-                    }
-                    self.write(comment);
-                }
+                self.write_comment_line(comment_part, indent_level);
             }
         }
     }
@@ -654,6 +638,51 @@ impl<'a, 'b> Printer<'a, 'b> {
                 .split_once("//")
                 .is_some()
         })
+    }
+
+    fn print_trailing_comments(&mut self, delim_span: DelimSpan, indent_level: usize) {
+        let start_line = delim_span.span().start().line - 1;
+        let end_line = delim_span.span().end().line - 1;
+
+        for line_idx in (start_line + 1)..end_line {
+            let line = self.source.line(line_idx);
+            let line_string = line.to_string();
+
+            if let Some((before_comment, comment_part)) = line_string.split_once("//") {
+                if before_comment.trim().is_empty() {
+                    let has_content_after = ((line_idx + 1)..end_line).any(|later_line_idx| {
+                        let later_line = self.source.line(later_line_idx);
+                        let later_line_string = later_line.to_string();
+
+                        if let Some((before_comment, _)) = later_line_string.split_once("//") {
+                            !before_comment.trim().is_empty()
+                        } else {
+                            !later_line_string.trim().is_empty()
+                        }
+                    });
+
+                    if !has_content_after {
+                        self.write_comment_line(comment_part, indent_level);
+                    }
+                }
+            }
+        }
+    }
+
+    fn write_comment_text(&mut self, comment: &str) {
+        self.write("//");
+        if !comment.is_empty() {
+            if !comment.starts_with(" ") {
+                self.write(" ");
+            }
+            self.write(comment);
+        }
+    }
+
+    fn write_comment_line(&mut self, comment_part: &str, indent_level: usize) {
+        self.new_line(indent_level);
+        let comment = comment_part.trim_end();
+        self.write_comment_text(comment);
     }
 }
 

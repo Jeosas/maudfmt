@@ -610,6 +610,48 @@ mod test {
     );
 
     test_default!(
+        comment_end_block,
+        r#"
+        html! {
+            p {
+                "test"
+                // trailing comment
+            }
+        }
+        "#,
+        r#"
+        html! {
+            p {
+                "test"
+                // trailing comment
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        comment_end_block_before_control,
+        r#"
+        html! {
+            p {
+                "test"
+                // trailing comment
+                @for x in y { "hi" }
+            }
+        }
+        "#,
+        r#"
+        html! {
+            p {
+                "test"
+                // trailing comment
+                @for x in y { "hi" }
+            }
+        }
+        "#
+    );
+
+    test_default!(
         keep_whitespace,
         r##"
         html!{
@@ -996,6 +1038,10 @@ mod test {
     );
 
     test_default!(
+Commits 1
+Checks 1
+Files changed 3
+
         quoted_attributes,
         r#"
         html! {
@@ -1155,6 +1201,341 @@ mod test {
                 @if let Some(x) = Some(1) && x > 0 { "test" }
                 p { "test" }
             }
+
+    test_default!(
+        comments_before_after_elements,
+        r#"
+        html! {
+            // comment before element
+            p { "content" }
+            // comment after element
+            div { "more content" }
+            // final comment
+        }
+        "#,
+        r#"
+        html! {
+            // comment before element
+            p { "content" }
+            // comment after element
+            div { "more content" }
+            // final comment
+        }
+        "#
+    );
+
+    test_default!(
+        comments_before_after_control_structures,
+        r#"
+        html! {
+            // before if
+            @if condition {
+                "true"
+            }
+            // between if and for
+            @for item in items {
+                // inside for
+                span { (item) }
+            }
+            // after for
+            @let x = 5;
+            // after let
+        }
+        "#,
+        r#"
+        html! {
+            // before if
+            @if condition { "true" }
+            // between if and for
+            @for item in items {
+                // inside for
+                span { (item) }
+            }
+            // after for
+            @let x = 5;
+            // after let
+        }
+        "#
+    );
+
+    test_default!(
+        comments_with_nested_blocks,
+        r#"
+        html! {
+            div {
+                // comment in outer block
+                p {
+                    // comment in inner block
+                    "text"
+                    // trailing comment in inner
+                }
+                // comment between elements
+                span { "more text" }
+                // final comment in outer
+            }
+        }
+        "#,
+        r#"
+        html! {
+            div {
+                // comment in outer block
+                p {
+                    // comment in inner block
+                    "text"
+                    // trailing comment in inner
+                }
+                // comment between elements
+                span { "more text" }
+                // final comment in outer
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        comments_with_attributes,
+        r#"
+        html! {
+            // before element with attrs
+            div class="test" id="main" {
+                "content"
+            }
+            // after element with attrs
+        }
+        "#,
+        r#"
+        html! {
+            // before element with attrs
+            div class="test" id="main" { "content" }
+            // after element with attrs
+        }
+        "#
+    );
+
+    test_default!(
+        inline_comments_on_constructs,
+        r#"
+        html! {
+            p { "text" }  // inline on element
+            @if true { "yes" }  // inline on control
+            (variable)  // inline on splice
+            div;  // inline on void element
+        }
+        "#,
+        r#"
+        html! {
+            p { "text" }  // inline on element
+            @if true { "yes" }  // inline on control
+            (variable)  // inline on splice
+            div;  // inline on void element
+        }
+        "#
+    );
+
+    test_default!(
+        comments_with_match_expressions,
+        r#"
+        html! {
+            // before match
+            @match value {
+                // comment in match
+                Some(x) => {
+                    // comment in arm
+                    span { (x) }
+                },
+                // comment between arms
+                None => {
+                    "empty"
+                    // trailing in arm
+                }
+                // final comment in match
+            }
+            // after match
+        }
+        "#,
+        r#"
+        html! {
+            // before match
+            @match value {
+                Some(x) => {
+                    // comment in arm
+                    span { (x) }
+                }
+                None => {
+                    "empty"
+                    // trailing in arm
+                }
+                // final comment in match
+            }
+            // after match
+        }
+        "#
+    );
+
+    test_default!(
+        comments_with_while_loops,
+        r#"
+        html! {
+            // before while
+            @while condition {
+                // inside while
+                p { "looping" }
+                // more in while
+            }
+            // after while
+            @while let Some(x) = iter.next() {
+                // inside while let
+                span { (x) }
+            }
+            // final comment
+        }
+        "#,
+        r#"
+        html! {
+            // before while
+            @while condition {
+                // inside while
+                p { "looping" }
+                // more in while
+            }
+            // after while
+            @while let Some(x) = iter.next() {
+                // inside while let
+                span { (x) }
+            }
+            // final comment
+        }
+        "#
+    );
+
+    test_default!(
+        comments_with_complex_splices,
+        r#"
+        html! {
+            // before splice
+            (complex_expression())  // inline on splice
+            // after splice
+            ({
+                // comment in block splice
+                let x = 5;
+                x + 1
+            })
+            // after block splice
+        }
+        "#,
+        r#"
+        html! {
+            // before splice
+            (complex_expression())  // inline on splice
+            // after splice
+            ({
+                let x = 5;
+                x + 1
+            })
+            // after block splice
+        }
+        "#
+    );
+
+    test_default!(
+        comments_with_classes_and_ids,
+        r#"
+        html! {
+            // before element with class
+            div.class1.class2 {
+                "content"
+            }
+            // between elements
+            p #id.class {
+                "more"
+            }  // inline after element
+            // final comment
+        }
+        "#,
+        r#"
+        html! {
+            // before element with class
+            div.class1.class2 { "content" }
+            // between elements
+            p #id.class {
+                "more"
+            }  // inline after element
+            // final comment
+        }
+        "#
+    );
+
+    test_default!(
+        comments_at_block_boundaries,
+        r#"
+        html! {
+            // start of main block
+            div {
+                // start of div block
+                p { "content" }
+                // end of div block
+            }
+            // end of main block
+        }
+        "#,
+        r#"
+        html! {
+            // start of main block
+            div {
+                // start of div block
+                p { "content" }
+                // end of div block
+            }
+            // end of main block
+        }
+        "#
+    );
+
+    test_default!(
+        comments_mixed_with_control_and_elements,
+        r#"
+        html! {
+            // header comment
+            h1 { "Title" }
+            // before conditional
+            @if show_content {
+                // inside if
+                p { "Content" }
+                // before loop
+                @for item in list {
+                    // inside loop
+                    li { (item) }  // inline in loop
+                }
+                // after loop
+            }
+            // before else
+            @else {
+                // inside else
+                p { "No content" }
+            }
+            // footer comment
+        }
+        "#,
+        r#"
+        html! {
+            // header comment
+            h1 { "Title" }
+            // before conditional
+            @if show_content {
+                // inside if
+                p { "Content" }
+                // before loop
+                @for item in list {
+                    // inside loop
+                    li { (item) }  // inline in loop
+                }
+                // after loop
+            } @else {
+                // inside else
+                p { "No content" }
+            }
+            // footer comment
+        }
         "#
     );
 }

@@ -13,7 +13,7 @@ macro_rules! test_default {
         #[test]
         fn $title() {
             // check formatter works as expected
-            assert_eq!(
+            pretty_assertions::assert_eq!(
                 crate::try_fmt_file($content, &DEFAULT_OPTIONS).expect("should be able to parse"),
                 String::from($expected)
             );
@@ -29,7 +29,7 @@ macro_rules! test_small_line {
         #[test]
         fn $title() {
             // check formatter works as expected
-            assert_eq!(
+            pretty_assertions::assert_eq!(
                 crate::try_fmt_file($content, &SMALL_LINE_OPTIONS)
                     .expect("should be able to parse"),
                 String::from($expected)

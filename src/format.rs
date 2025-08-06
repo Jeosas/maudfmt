@@ -19,7 +19,16 @@ impl Default for FormatOptions {
     fn default() -> Self {
         FormatOptions {
             line_length: 100,
-            macro_names: vec![String::from("maud::html"), String::from("html")],
+            macro_names: vec![
+                String::from("maud::html"),
+                String::from("html"),
+                String::from("hypertext::maud"),
+                String::from("maud"),
+                String::from("hypertext::maud_borrow"),
+                String::from("maud_borrow"),
+                String::from("hypertext::maud_static"),
+                String::from("maud_static"),
+            ],
         }
     }
 }

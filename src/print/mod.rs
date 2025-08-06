@@ -101,4 +101,28 @@ mod test {
         "maud::html!{ }",
         "maud::html! {}"
     );
+
+    test_default!(
+        hypertext_maud_empty,
+        "hypertext::maud!{ }",
+        "hypertext::maud! {}"
+    );
+
+    test_default!(
+        hypertext_maud_borrow_empty,
+        "hypertext::maud_borrow!{ }",
+        "hypertext::maud_borrow! {}"
+    );
+
+    test_default!(
+        hypertext_maud_static_empty,
+        "hypertext::maud_static!{ }",
+        "hypertext::maud_static! {}"
+    );
+
+    test_default!(maud_empty, "maud!{ }", "maud! {}");
+
+    test_default!(maud_borrow_empty, "maud_borrow!{ }", "maud_borrow! {}");
+
+    test_default!(maud_static_empty, "maud_static!{ }", "maud_static! {}");
 }

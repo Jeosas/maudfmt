@@ -19,12 +19,19 @@ struct Cli {
     /// Format stdin and write to stdout
     #[arg(short, long, default_value = "false")]
     stdin: bool,
+
+    /// Comma-separated list of macro names (overriding html and maud::html)
+    #[arg(short, long, value_delimiter = ',', default_value = None)]
+    macro_names: Option<Vec<String>>,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let format_options = FormatOptions::default();
+    let mut format_options = FormatOptions::default();
+    if let Some(macro_names) = cli.macro_names {
+        format_options.macro_names = macro_names;
+    }
 
     if cli.stdin {
         let buf = {

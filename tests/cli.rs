@@ -105,7 +105,7 @@ fn format_dir_from_argument() -> Result<()> {
     file_2.write_str(IN_FILE)?;
 
     // When
-    let mut cmd = Command::cargo_bin("maudfmt")?;
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     cmd.arg(directory.path());
 
     // Then
@@ -130,6 +130,108 @@ fn format_file_from_stdin() -> Result<()> {
     cmd.assert()
         .success()
         .stdout(predicate::str::diff(OUT_FILE));
+
+    Ok(())
+}
+
+static CUSTOM_MACRO_IN_FILE: &str = r#"
+use hypertext::prelude::*;
+
+fn header(page_title: &str) -> Markup {
+    maud!{(DOCTYPE) meta charset="utf-8";title{(page_title)}}
+}
+
+fn footer() -> Markup {
+    hyperscript::maud!{footer{a href="rss.atom"{"RSS Feed"}}}
+}
+
+fn sidebar() -> Markup {
+    html!{div class="sidebar"{p{"This should not be formatted"}}}
+}
+
+pub fn page(title: &str, greeting_box: Markup) -> Markup {
+    maud!{(header(title)) h1{(title)}(greeting_box)(footer())(sidebar())}
+}
+"#;
+
+static CUSTOM_MACRO_OUT_FILE: &str = r#"
+use hypertext::prelude::*;
+
+fn header(page_title: &str) -> Markup {
+    maud! {
+        (DOCTYPE)
+        meta charset="utf-8";
+        title { (page_title) }
+    }
+}
+
+fn footer() -> Markup {
+    hyperscript::maud! {
+        footer {
+            a href="rss.atom" { "RSS Feed" }
+        }
+    }
+}
+
+fn sidebar() -> Markup {
+    html!{div class="sidebar"{p{"This should not be formatted"}}}
+}
+
+pub fn page(title: &str, greeting_box: Markup) -> Markup {
+    maud! {
+        (header(title))
+        h1 { (title) }
+        (greeting_box)
+        (footer())
+        (sidebar())
+    }
+}
+"#;
+
+#[test]
+fn format_file_with_custom_macro_names() -> Result<()> {
+    let file = assert_fs::NamedTempFile::new("sample.rs")?;
+    file.write_str(CUSTOM_MACRO_IN_FILE)?;
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    cmd.arg("--macro-names")
+        .arg("maud,hyperscript::maud")
+        .arg(file.path());
+
+    cmd.assert().success();
+    assert_eq!(std::fs::read_to_string(&file)?, CUSTOM_MACRO_OUT_FILE);
+
+    Ok(())
+}
+
+#[test]
+fn format_stdin_with_custom_macro_names() -> Result<()> {
+    let file = assert_fs::NamedTempFile::new("stdin")?;
+    file.write_str(CUSTOM_MACRO_IN_FILE)?;
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    cmd.arg("-s")
+        .arg("--macro-names")
+        .arg("maud,hyperscript::maud")
+        .pipe_stdin(file)?;
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::diff(CUSTOM_MACRO_OUT_FILE));
+
+    Ok(())
+}
+
+#[test]
+fn format_file_with_custom_macro_names_short_arg() -> Result<()> {
+    let file = assert_fs::NamedTempFile::new("sample.rs")?;
+    file.write_str(CUSTOM_MACRO_IN_FILE)?;
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    cmd.arg("-m").arg("maud,hyperscript::maud").arg(file.path());
+
+    cmd.assert().success();
+    assert_eq!(std::fs::read_to_string(&file)?, CUSTOM_MACRO_OUT_FILE);
 
     Ok(())
 }

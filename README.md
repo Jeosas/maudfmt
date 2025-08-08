@@ -52,9 +52,10 @@ Arguments:
   [FILE]...  A space separated list of file, directory or glob
 
 Options:
-  -s, --stdin    Format stdin and write to stdout
-  -h, --help     Print help
-  -V, --version  Print version
+  -s, --stdin                      Format stdin and write to stdout
+  -m, --macro-names <MACRO_NAMES>  Comma-separated list of macro names (overriding html and maud::html)
+  -h, --help                       Print help
+  -V, --version                    Print version
 ```
 
 <!-- help end -->

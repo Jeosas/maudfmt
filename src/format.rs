@@ -10,6 +10,8 @@ use syn::{
 
 use crate::{ast::Markups, collect::MaudMacro, print::print};
 
+const IGNORE_PLACEHOLDER: &str = "\"__MAUDFMT_IGNORED_PLACEHOLDER__\"";
+
 pub struct FormatOptions {
     pub line_length: usize,
     pub macro_names: Vec<String>,
@@ -85,4 +87,151 @@ pub fn line_column_to_byte(source: &Rope, point: proc_macro2::LineColumn) -> usi
     let line = source.line(point.line - 1);
     let char_byte: usize = line.chars().take(point.column).map(|c| c.len_utf8()).sum();
     line_byte + char_byte
+}
+
+pub fn preprocess_source_for_ignore(source: &str) -> (String, Vec<&str>) {
+    let lines: Vec<&str> = source.lines().collect();
+    let mut processed_lines = Vec::with_capacity(lines.len());
+    let mut ignore_info = Vec::new();
+    let mut i = 0;
+
+    while i < lines.len() {
+        let line = lines[i];
+
+        if let Some((_, comment_part)) = line.split_once("//") {
+            let comment_trimmed = comment_part.trim();
+            if comment_trimmed.starts_with("maudfmt-ignore") && i + 1 < lines.len() {
+                ignore_info.push(lines[i + 1]);
+
+                processed_lines.push(line);
+                processed_lines.push(IGNORE_PLACEHOLDER);
+
+                i += 2;
+                continue;
+            }
+        }
+
+        processed_lines.push(line);
+        i += 1;
+    }
+
+    if source.ends_with('\n') {
+        processed_lines.push("");
+    }
+
+    (processed_lines.join("\n"), ignore_info)
+}
+
+pub fn reinsert_ignored_lines_in_source(formatted_source: &str, ignore_info: &[&str]) -> String {
+    let lines: Vec<&str> = formatted_source.lines().collect();
+    let mut result_lines = Vec::with_capacity(lines.len());
+    let mut ignore_index = 0;
+
+    for line in lines {
+        if line.trim() == IGNORE_PLACEHOLDER && ignore_index < ignore_info.len() {
+            result_lines.push(ignore_info[ignore_index]);
+            ignore_index += 1;
+        } else {
+            result_lines.push(line);
+        }
+    }
+
+    if formatted_source.ends_with('\n') {
+        result_lines.push("");
+    }
+
+    result_lines.join("\n")
+}
+
+#[cfg(test)]
+mod test {
+    use crate::testing::*;
+
+    test_default!(
+        maudfmt_ignore_multiple_lines,
+        r#"
+        html! {
+            p {"formatted" }
+            // maudfmt-ignore
+            div class="unformatted"   id="test" { "content" }
+            // maudfmt-ignore
+            span  style="color:red;" { "text" }
+            h1 {"formatted" }
+        }
+        "#,
+        r#"
+        html! {
+            p { "formatted" }
+            // maudfmt-ignore
+            div class="unformatted"   id="test" { "content" }
+            // maudfmt-ignore
+            span  style="color:red;" { "text" }
+            h1 { "formatted" }
+        }
+        "#
+    );
+
+    test_default!(
+        maudfmt_ignore_with_extra_brace,
+        r#"
+        html! {
+            p {"formatted" }
+            //maudfmt-ignore
+            div class="unformatted"   id="test" { "content" } { {
+            span {"formatted again" }
+        }
+        "#,
+        r#"
+        html! {
+            p { "formatted" }
+            // maudfmt-ignore
+            div class="unformatted"   id="test" { "content" } { {
+            span { "formatted again" }
+        }
+        "#
+    );
+
+    test_default!(
+        maudfmt_ignore_with_comment_text,
+        r#"
+        html! {
+            p {"formatted" }
+            // maudfmt-ignore this line is special
+            div class="unformatted"   id="test" { "content" }
+            span {"formatted again" }
+        }
+        "#,
+        r#"
+        html! {
+            p { "formatted" }
+            // maudfmt-ignore this line is special
+            div class="unformatted"   id="test" { "content" }
+            span { "formatted again" }
+        }
+        "#
+    );
+
+    test_default!(
+        maudfmt_ignore_long_line_no_split,
+        r#"
+        html! {
+            div {
+                p { "formatted"}
+                // maudfmt-ignore
+                span class="unformatted"   id="test" { "content" "more content to split the lines" "even more content to split the lines further" }
+                h1 {"formatted" }
+            }
+        }
+        "#,
+        r#"
+        html! {
+            div {
+                p { "formatted" }
+                // maudfmt-ignore
+                span class="unformatted"   id="test" { "content" "more content to split the lines" "even more content to split the lines further" }
+                h1 { "formatted" }
+            }
+        }
+        "#
+    );
 }

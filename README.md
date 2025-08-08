@@ -99,6 +99,19 @@ p {
 }
 ```
 
+### Skip formatting for a single line
+
+To skip formatting for just one line, add a `// maudfmt-ignore` comment on the line before:
+
+```
+html! {
+    p { "formatted" }
+    // maudfmt-ignore
+    span class="unformatted"   id="test" { "content" }
+    h1 { "also formatted" }
+}
+```
+
 ### Magic comments
 
 _maudfmt_ automatically manages exanding and collapsing blocks depending on line length.

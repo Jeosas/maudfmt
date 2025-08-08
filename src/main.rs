@@ -19,12 +19,19 @@ struct Cli {
     /// Format stdin and write to stdout
     #[arg(short, long, default_value = "false")]
     stdin: bool,
+
+    /// Override macro names to format
+    #[arg(short, long, value_delimiter = ',', default_values = ["html", "maud::html"])]
+    macro_names: Vec<String>,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let format_options = FormatOptions::default();
+    let format_options = FormatOptions {
+        line_length: 100,
+        macro_names: cli.macro_names,
+    };
 
     if cli.stdin {
         let buf = {

@@ -2,7 +2,7 @@ use crop::RopeSlice;
 use proc_macro2::{LineColumn, extra::DelimSpan};
 use syn::spanned::Spanned as _;
 
-use crate::print::Printer;
+use crate::{format::line_column_to_byte, print::Printer};
 
 impl<'a, 'b> Printer<'a, 'b> {
     // Returns true if a comment was inserted
@@ -11,8 +11,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             return false;
         }
 
-        // LineColumn.line is 1-indexed
-        let token_end_byte = self.source.byte_of_line(loc.line - 1) + loc.column;
+        let token_end_byte = line_column_to_byte(self.source, loc);
         let next_line_start_byte = self.source.byte_of_line(loc.line);
 
         if let Some(comment) = self
@@ -38,17 +37,11 @@ impl<'a, 'b> Printer<'a, 'b> {
         indent_level: usize,
         preserve_blank_lines: bool,
     ) {
-        let mut cursor_line = loc.line - 1; // LineColumn.line is 1-indexed
-        if cursor_line == 0 {
-            // line is already the top of the document
+        let mut cursor_line = loc.line - 1;
+        if cursor_line == 0 || !self.is_leading(loc) {
             return;
         }
 
-        if !self.is_leading(loc) {
-            return;
-        }
-
-        // Keep whitespace
         if preserve_blank_lines
             && self
                 .source
@@ -57,7 +50,7 @@ impl<'a, 'b> Printer<'a, 'b> {
                 .trim()
                 .is_empty()
         {
-            self.buf = String::new(); // remove indent for less bytes in final file
+            self.buf = String::new();
             self.new_line(indent_level);
             return;
         }
@@ -76,7 +69,6 @@ impl<'a, 'b> Printer<'a, 'b> {
     }
 
     pub fn print_block_comments(&mut self, delim_span: DelimSpan, indent_level: usize) {
-        // LineColumn.line is 1-indexed
         let start_line = delim_span.span().start().line - 1;
         let end_line = delim_span.span().end().line - 1;
 
@@ -89,12 +81,10 @@ impl<'a, 'b> Printer<'a, 'b> {
     }
 
     pub fn block_contains_comments(&self, delim_span: DelimSpan) -> bool {
-        // LineColumn.line is 1-indexed
         let start_line = delim_span.span().start().line - 1;
         let end_line = delim_span.span().end().line - 1;
 
         if start_line == end_line {
-            // closed brackets, let attr_comment handle it
             return false;
         }
 
@@ -152,26 +142,29 @@ impl<'a, 'b> Printer<'a, 'b> {
         self.write_comment_text(comment);
     }
 
-    // Check if a Markup location is leading a line or not
-    // Prevents inline comments and whitespace
-    // from being printed more than once
     fn is_leading(&self, loc: LineColumn) -> bool {
-        // LineColumn.line is 1-indexed
-        let line = self.source.line(loc.line - 1);
-        // is start of the line ?
-        line.byte_slice(..loc.column).to_string().trim().is_empty()
+        let line_start_byte = self.source.byte_of_line(loc.line - 1);
+        let token_start_byte = line_column_to_byte(self.source, loc);
+
+        let before_token = self
+            .source
+            .byte_slice(line_start_byte..token_start_byte)
+            .to_string();
+
+        before_token.trim().is_empty()
     }
 
-    // Check if a Markup location is trainling a line or not
-    // Prevents attrs comments from being printed more than once
     fn is_trailing(&self, loc: LineColumn) -> bool {
-        // LineColumn.line is 1-indexed
-        let line = self.source.line(loc.line - 1);
+        let token_end_byte = line_column_to_byte(self.source, loc);
+        let next_line_start_byte = self.source.byte_of_line(loc.line);
 
-        // is start of the line ?
-        let line_string = line.byte_slice(loc.column..).to_string();
+        let line_string = self
+            .source
+            .byte_slice(token_end_byte..next_line_start_byte)
+            .to_string();
+
         line_string
-            .split_once("//") // remove comment if exist
+            .split_once("//")
             .map(|(txt, _)| txt)
             .unwrap_or(&line_string)
             .trim()
@@ -781,6 +774,24 @@ mod test {
                 p { "No content" }
             }
             // footer comment
+        }
+        "#
+    );
+
+    test_default!(
+        utf8_characters_in_content_and_comments,
+        r#"
+        html! {
+            p { "✕ ❌ 🚫 ⛔" }  // Various UTF-8 symbols ✓ ✗ ⚠️
+            div { "こんにちは世界" }  // Japanese text 日本語
+            span { "🎉🎊🎈" }  // Emojis 🌟
+        }
+        "#,
+        r#"
+        html! {
+            p { "✕ ❌ 🚫 ⛔" }  // Various UTF-8 symbols ✓ ✗ ⚠️
+            div { "こんにちは世界" }  // Japanese text 日本語
+            span { "🎉🎊🎈" }  // Emojis 🌟
         }
         "#
     );

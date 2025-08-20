@@ -31,8 +31,26 @@ impl<'a, 'b> Printer<'a, 'b> {
                 self.print_block(for_expr.body, indent_level);
             }
             ControlFlowKind::Let(local) => {
+                let let_indent_level = match indent_level {
+                    0 => 0,
+                    indent_level => indent_level - 1,
+                };
+                let unparsed_lines = unparse_local(&local, let_indent_level);
                 self.write("@");
-                self.write(&unparse_local(&local, self.base_indent + indent_level).join("\n"));
+                match unparsed_lines.len() {
+                    0 => {}
+                    1 => {
+                        self.write(&unparsed_lines[0]);
+                    }
+                    _ => {
+                        self.write(unparsed_lines[0].trim_start());
+
+                        for line in &unparsed_lines[1..] {
+                            self.new_line(0);
+                            self.write(line);
+                        }
+                    }
+                }
                 self.write(";");
                 self.print_attr_comment(local.semi_token.span().end());
             }
@@ -334,5 +352,66 @@ mod test {
             (DOCTYPE)
         }
         "##
+    );
+
+    test_default!(
+        control_let_long_field_access,
+        r#"
+        html! { button { @let asdsfdfsdgfjksdnglksdjgdsgx = ysdasdadsadasdsadsadsadafdfsdgfsdgdssfsdflsjfisfjsfgnsjklfnakjsfnasjkdfnsasfsdfdsfsdfsfsdfsdgdgdlgkjdsfklajdnklasdnfklsd.nflksdngflksdgnsddfj; } }
+        "#,
+        r#"
+        html! {
+            button {
+                @let asdsfdfsdgfjksdnglksdjgdsgx = ysdasdadsadasdsadsadsadafdfsdgfsdgdssfsdflsjfisfjsfgnsjklfnakjsfnasjkdfnsasfsdfdsfsdfsfsdfsdgdgdlgkjdsfklajdnklasdnfklsd
+                    .nflksdngflksdgnsddfj;
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_let_long_binary_expr,
+        r#"
+        html! { button { @let asdsfdfsdgfjksdnglksdjgdsgx = ysdasdadsadasdsadsadsadafdfsdgfsdgdssfsdflsjfisfjsfgnsjklfnakjsfnasjkdfnsasfsdfdsfsdfsfsdfsdgdgdlgkjdsfklajdnklasdnfklsdnflksdngflksdgnsddfj + asdas; } }
+        "#,
+        r#"
+        html! {
+            button {
+                @let asdsfdfsdgfjksdnglksdjgdsgx = ysdasdadsadasdsadsadsadafdfsdgfsdgdssfsdflsjfisfjsfgnsjklfnakjsfnasjkdfnsasfsdfdsfsdfsfsdfsdgdgdlgkjdsfklajdnklasdnfklsdnflksdngflksdgnsddfj
+                    + asdas;
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_let_medium_length_wraps,
+        r#"
+        html! { button { @let this_variable_name_is_long_enough_to_cause_wrapping = some_object.method().call().chain(); } }
+        "#,
+        r#"
+        html! {
+            button {
+                @let this_variable_name_is_long_enough_to_cause_wrapping = some_object
+                    .method()
+                    .call()
+                    .chain();
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_let_medium_length_stays_inline,
+        r#"
+        html! { button { @let medium_var = some_object.method().call().chain(); } }
+        "#,
+        r#"
+        html! {
+            button {
+                @let medium_var = some_object.method().call().chain();
+            }
+        }
+        "#
     );
 }

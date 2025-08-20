@@ -37,7 +37,7 @@ pub fn unparse_local(local: &Local, total_indent_size: usize) -> Vec<String> {
         1 => vec![unparsed[0].trim().strip_suffix(";").unwrap().to_string()],
         _ => {
             let mut unparsed = unparsed;
-            let last_idx = unparsed.len();
+            let last_idx = unparsed.len() - 1;
             unparsed[last_idx] = unparsed[last_idx].strip_suffix(";").unwrap().to_string();
 
             unparsed

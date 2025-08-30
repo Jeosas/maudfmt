@@ -26,7 +26,15 @@ impl<'a, 'b> Printer<'a, 'b> {
                 self.write("@for ");
                 self.write(&unparse_pat(&for_expr.pat, self.base_indent + indent_level).join("\n"));
                 self.write(" in ");
-                self.print_expr(for_expr.expr, indent_level);
+                // handle range separately, to avoid prettyplease adding unnecessary parentheses
+                match for_expr.expr {
+                    Expr::Range(range_expr) => {
+                        self.print_range(range_expr, indent_level);
+                    }
+                    _ => {
+                        self.print_expr(for_expr.expr, indent_level);
+                    }
+                }
                 self.write(" ");
                 self.print_block(for_expr.body, indent_level);
             }
@@ -111,6 +119,19 @@ impl<'a, 'b> Printer<'a, 'b> {
                     self.print_block(block, indent_level);
                 }
             }
+        }
+    }
+
+    fn print_range(&mut self, range_expr: syn::ExprRange, indent_level: usize) {
+        if let Some(ref start) = range_expr.start {
+            self.print_expr(*start.clone(), indent_level);
+        }
+        match range_expr.limits {
+            syn::RangeLimits::HalfOpen(_) => self.write(".."),
+            syn::RangeLimits::Closed(_) => self.write("..="),
+        }
+        if let Some(ref end) = range_expr.end {
+            self.print_expr(*end.clone(), indent_level);
         }
     }
 }
@@ -332,6 +353,20 @@ mod test {
         html! {
             // <!DOCTYPE html>
             (DOCTYPE)
+        }
+        "##
+    );
+
+    test_default!(
+        control_for_range,
+        r##"
+        html!{ @for i in 0..10 { p { (i) } } }
+        "##,
+        r##"
+        html! {
+            @for i in 0..10 {
+                p { (i) }
+            }
         }
         "##
     );

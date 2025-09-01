@@ -105,22 +105,22 @@ impl<'a, 'b> Printer<'a, 'b> {
             let line = self.source.line(line_idx);
             let line_string = line.to_string();
 
-            if let Some((before_comment, comment_part)) = line_string.split_once("//") {
-                if before_comment.trim().is_empty() {
-                    let has_content_after = ((line_idx + 1)..end_line).any(|later_line_idx| {
-                        let later_line = self.source.line(later_line_idx);
-                        let later_line_string = later_line.to_string();
+            if let Some((before_comment, comment_part)) = line_string.split_once("//")
+                && before_comment.trim().is_empty()
+            {
+                let has_content_after = ((line_idx + 1)..end_line).any(|later_line_idx| {
+                    let later_line = self.source.line(later_line_idx);
+                    let later_line_string = later_line.to_string();
 
-                        if let Some((before_comment, _)) = later_line_string.split_once("//") {
-                            !before_comment.trim().is_empty()
-                        } else {
-                            !later_line_string.trim().is_empty()
-                        }
-                    });
-
-                    if !has_content_after {
-                        self.write_comment_line(comment_part, indent_level);
+                    if let Some((before_comment, _)) = later_line_string.split_once("//") {
+                        !before_comment.trim().is_empty()
+                    } else {
+                        !later_line_string.trim().is_empty()
                     }
+                });
+
+                if !has_content_after {
+                    self.write_comment_line(comment_part, indent_level);
                 }
             }
         }

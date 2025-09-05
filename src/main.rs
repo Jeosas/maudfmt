@@ -51,10 +51,10 @@ fn main() -> Result<()> {
             Some(files) => {
                 for file in get_file_paths(files)? {
                     let source = std::fs::read_to_string(&file)?;
-                    if let Ok(formatted) = try_fmt_file(&source, &format_options) {
-                        if source != formatted {
-                            fs::write(file, &formatted)?;
-                        }
+                    if let Ok(formatted) = try_fmt_file(&source, &format_options)
+                        && source != formatted
+                    {
+                        fs::write(file, &formatted)?;
                     }
                 }
             }

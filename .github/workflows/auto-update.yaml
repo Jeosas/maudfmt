@@ -1,0 +1,61 @@
+---
+name: Dependencies Auto-Update
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Every Monday at 00:00
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Check for open PR with label auto-update
+        id: check_pr
+        run: |
+          PRS=$(gh pr list --state open --json number,labels --jq '.[] | select(.labels[]?.name == "auto-update") | .number')
+          if [ -z "$PRS" ]; then
+            echo "no_open_pr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "no_open_pr=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: DeterminateSystems/nix-installer-action@21a544727d0c62386e78b4befe52d19ad12692e3 # v17
+        if: steps.check_pr.outputs.no_open_pr == 'true'
+
+      - name: Update dependencies (nix)
+        if: steps.check_pr.outputs.no_open_pr == 'true'
+        run: nix flake update
+
+      - name: Update dependencies (cargo)
+        if: steps.check_pr.outputs.no_open_pr == 'true'
+        run: nix develop --command bash -c "cargo update"
+
+      - name: Create Pull Request
+        if: steps.check_pr.outputs.no_open_pr == 'true'
+        id: pr_create
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update dependencies"
+          title: "chore: update dependencies"
+          body: "Automated dependency updates"
+          branch: "auto-update-dependencies"
+          base: "main"
+          labels: "dependencies,bot,auto-update"
+
+      - name: Enable auto-merge
+        if: steps.check_pr.outputs.no_open_pr == 'true'
+        run: |
+          gh pr merge --auto --rebase "$PR_URL"
+        env:
+          PR_URL: ${{ steps.pr_create.outputs.pull-request-url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -10,14 +10,15 @@ permissions:
   contents: write
 
 jobs:
-  nix-flake-check:
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: DeterminateSystems/nix-installer-action@21a544727d0c62386e78b4befe52d19ad12692e3 # v17
       # - uses: DeterminateSystems/magic-nix-cache-action@def9f5a5c6a6b8751c0534e8813a5d0ad2635660 # v11
 
-      - run: nix build .
+      - name: Build crate
+        run: nix build .
 
       - name: Publish crate
         env:

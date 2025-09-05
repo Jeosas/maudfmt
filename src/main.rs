@@ -1,7 +1,8 @@
 use std::{
     fs,
-    io::{self, Read},
+    io::{self, Read, Write as _},
     path::PathBuf,
+    process::{Command, Stdio},
 };
 
 use anyhow::{Context, Result, bail};
@@ -23,6 +24,10 @@ struct Cli {
     /// Comma-separated list of macro names (overriding html and maud::html)
     #[arg(short, long, value_delimiter = ',', default_value = None)]
     macro_names: Option<Vec<String>>,
+
+    /// Run rustfmt after maudfmt
+    #[arg(long, default_value = "false")]
+    rustfmt: bool,
 }
 
 fn main() -> Result<()> {
@@ -43,7 +48,12 @@ fn main() -> Result<()> {
             buf
         };
 
-        let formatted_buf = try_fmt_file(&buf, &format_options).unwrap_or(buf);
+        let mut formatted_buf = try_fmt_file(&buf, &format_options).unwrap_or(buf);
+
+        if cli.rustfmt {
+            formatted_buf = run_rustfmt(&formatted_buf).unwrap_or(formatted_buf);
+        }
+
         print!("{formatted_buf}");
     } else {
         match cli.files {
@@ -51,11 +61,15 @@ fn main() -> Result<()> {
             Some(files) => {
                 for file in get_file_paths(files)? {
                     let source = std::fs::read_to_string(&file)?;
-                    if let Ok(formatted) = try_fmt_file(&source, &format_options)
-                        && source != formatted
-                    {
-                        fs::write(file, &formatted)?;
+                    let mut formatted_source =
+                        try_fmt_file(&source, &format_options).unwrap_or(source);
+
+                    if cli.rustfmt {
+                        formatted_source =
+                            run_rustfmt(&formatted_source).unwrap_or(formatted_source);
                     }
+
+                    fs::write(file, &formatted_source)?;
                 }
             }
         }
@@ -85,4 +99,27 @@ fn as_glob_pattern(pattern: String) -> String {
         return format!("{}/**/*.rs", &pattern.trim_end_matches('/'));
     }
     pattern
+}
+
+fn run_rustfmt(source: &str) -> Option<String> {
+    let mut child = Command::new("rustfmt")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("rustfmt: failed to run rustfmt");
+
+    child
+        .stdin
+        .as_mut()
+        .expect("failed to open stdin")
+        .write_all(source.as_bytes())
+        .expect("failed to write to stdin");
+
+    let output = child.wait_with_output().expect("failed to read stdout");
+
+    if output.status.success() {
+        Some(String::from_utf8(output.stdout).expect("stdout is not valid utf8"))
+    } else {
+        None
+    }
 }

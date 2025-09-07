@@ -235,3 +235,90 @@ fn format_file_with_custom_macro_names_short_arg() -> Result<()> {
 
     Ok(())
 }
+
+static LONG_LINE_IN_FILE: &str = r#"
+use maud::{html, Markup};
+
+fn test() -> Markup {
+    html!{div class="very-long-class-name" id="super-long-id-name"{p data-attr="value"{"Content"}}}
+}
+"#;
+
+static LONG_LINE_OUT_FILE_SHORT_LENGTH: &str = r#"
+use maud::{html, Markup};
+
+fn test() -> Markup {
+    html! {
+        div
+            class="very-long-class-name"
+            id="super-long-id-name"
+        {
+            p data-attr="value" { "Content" }
+        }
+    }
+}
+"#;
+
+static LONG_LINE_OUT_FILE_LONG_LENGTH: &str = r#"
+use maud::{html, Markup};
+
+fn test() -> Markup {
+    html! {
+        div class="very-long-class-name" id="super-long-id-name" {
+            p data-attr="value" { "Content" }
+        }
+    }
+}
+"#;
+
+#[test]
+fn format_file_with_short_line_length() -> Result<()> {
+    let file = assert_fs::NamedTempFile::new("sample.rs")?;
+    file.write_str(LONG_LINE_IN_FILE)?;
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    cmd.arg("--line-length").arg("50").arg(file.path());
+
+    cmd.assert().success();
+    assert_eq!(
+        std::fs::read_to_string(&file)?,
+        LONG_LINE_OUT_FILE_SHORT_LENGTH
+    );
+
+    Ok(())
+}
+
+#[test]
+fn format_file_with_long_line_length() -> Result<()> {
+    let file = assert_fs::NamedTempFile::new("sample.rs")?;
+    file.write_str(LONG_LINE_IN_FILE)?;
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    cmd.arg("--line-length").arg("200").arg(file.path());
+
+    cmd.assert().success();
+    assert_eq!(
+        std::fs::read_to_string(&file)?,
+        LONG_LINE_OUT_FILE_LONG_LENGTH
+    );
+
+    Ok(())
+}
+
+#[test]
+fn format_stdin_with_line_length() -> Result<()> {
+    let file = assert_fs::NamedTempFile::new("stdin")?;
+    file.write_str(LONG_LINE_IN_FILE)?;
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    cmd.arg("-s")
+        .arg("--line-length")
+        .arg("50")
+        .pipe_stdin(file)?;
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::diff(LONG_LINE_OUT_FILE_SHORT_LENGTH));
+
+    Ok(())
+}

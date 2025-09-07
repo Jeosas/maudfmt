@@ -28,6 +28,10 @@ struct Cli {
     /// Run rustfmt after maudfmt
     #[arg(long, default_value = "false")]
     rustfmt: bool,
+
+    /// Maximum line length
+    #[arg(long)]
+    line_length: Option<usize>,
 }
 
 fn main() -> Result<()> {
@@ -36,6 +40,9 @@ fn main() -> Result<()> {
     let mut format_options = FormatOptions::default();
     if let Some(macro_names) = cli.macro_names {
         format_options.macro_names = macro_names;
+    }
+    if let Some(line_length) = cli.line_length {
+        format_options.line_length = line_length;
     }
 
     if cli.stdin {

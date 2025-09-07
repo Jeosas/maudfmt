@@ -55,6 +55,7 @@ Options:
   -s, --stdin                      Format stdin and write to stdout
   -m, --macro-names <MACRO_NAMES>  Comma-separated list of macro names (overriding html and maud::html)
       --rustfmt                    Run rustfmt after maudfmt
+      --line-length <LINE_LENGTH>  Maximum line length
   -h, --help                       Print help
   -V, --version                    Print version
 ```

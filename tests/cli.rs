@@ -249,8 +249,7 @@ use maud::{html, Markup};
 
 fn test() -> Markup {
     html! {
-        div
-            class="very-long-class-name"
+        div class="very-long-class-name"
             id="super-long-id-name"
         {
             p data-attr="value" { "Content" }

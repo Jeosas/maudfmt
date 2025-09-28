@@ -59,6 +59,8 @@ impl<'a, 'b> Printer<'a, 'b> {
         } else {
             true
         };
+
+        let element_name_len = name.as_ref().map_or(0, |n| n.to_string().len());
         let mut is_first_attr = true;
 
         // element tag name
@@ -68,29 +70,26 @@ impl<'a, 'b> Printer<'a, 'b> {
                 indent_level,
                 preserve_blank_lines,
             );
-            is_first_attr = false;
             self.print_html_name(&html_name);
             self.print_attr_comment(html_name.span().end());
         }
 
         // printing id
         if let Some((pound_token, name)) = id_name {
-            match (is_first_attr, should_wrap) {
-                (false, false) => {
-                    self.write(" ");
-                }
-                (false, true) => {
-                    self.new_line(indent_level + 1);
-                }
-                (true, _) => {
-                    self.print_inline_comment_and_whitespace(
-                        pound_token.span().start(),
-                        indent_level,
-                        preserve_blank_lines,
-                    );
-                    is_first_attr = false;
-                }
+            if element_name_len == 0 && is_first_attr {
+                self.print_inline_comment_and_whitespace(
+                    pound_token.span().start(),
+                    indent_level,
+                    preserve_blank_lines,
+                );
+            } else if !should_wrap {
+                self.write(" ");
+            } else if is_first_attr && element_name_len < 4 {
+                self.write(&" ".repeat(4 - element_name_len));
+            } else {
+                self.new_line(indent_level + 1);
             }
+            is_first_attr = false;
             self.write("#");
             match name {
                 HtmlNameOrMarkup::HtmlName(html_name) => {
@@ -103,20 +102,20 @@ impl<'a, 'b> Printer<'a, 'b> {
 
         // printing classes
         for (dot_token, name, maybe_toggler) in classes {
-            match (is_first_attr, should_wrap) {
-                (false, true) => {
-                    self.new_line(indent_level + 1);
-                }
-                (false, false) => (),
-                (true, _) => {
-                    self.print_inline_comment_and_whitespace(
-                        dot_token.span().start(),
-                        indent_level,
-                        preserve_blank_lines,
-                    );
-                    is_first_attr = false;
-                }
+            if element_name_len == 0 && is_first_attr {
+                self.print_inline_comment_and_whitespace(
+                    dot_token.span().start(),
+                    indent_level,
+                    preserve_blank_lines,
+                );
+            } else if !should_wrap {
+                // dot classes have no preceding space
+            } else if is_first_attr && element_name_len < 4 {
+                self.write(&" ".repeat(4 - element_name_len));
+            } else if should_wrap {
+                self.new_line(indent_level + 1);
             }
+            is_first_attr = false;
             self.write(".");
             match name {
                 HtmlNameOrMarkup::HtmlName(html_name) => {
@@ -136,11 +135,14 @@ impl<'a, 'b> Printer<'a, 'b> {
 
         // printing other attributes
         for (name, attr_type) in named_attrs {
-            if should_wrap {
-                self.new_line(indent_level + 1);
-            } else {
+            if !should_wrap {
                 self.write(" ");
+            } else if is_first_attr && element_name_len < 4 {
+                self.write(&" ".repeat(4 - element_name_len));
+            } else {
+                self.new_line(indent_level + 1);
             }
+            is_first_attr = false;
             self.print_html_attribute_name(&name);
             match attr_type {
                 AttributeType::Normal { value, .. } => {
@@ -631,8 +633,7 @@ mod test {
         "#,
         r#"
         html! {
-            div
-                test={
+            div test={
                     "This is a long multi-line attribute."
                     "This is another line in the long attribute value."
                 }
@@ -691,6 +692,41 @@ mod test {
         "#
     );
 
+    test_small_line!(
+        short_element_name_multiple_long_attributes,
+        r#"
+        html! {
+            p class="very-long-class-name-that-exceeds-line-length" href="https://example.com/very-long-url" data-attribute="another-very-long-attribute-value" { "content" }
+        }
+        "#,
+        r#"
+        html! {
+            p   class="very-long-class-name-that-exceeds-line-length"
+                href="https://example.com/very-long-url"
+                data-attribute="another-very-long-attribute-value"
+            { "content" }
+        }
+        "#
+    );
+
+    test_small_line!(
+        long_element_name_multiple_long_attributes,
+        r#"
+        html! {
+            section class="very-long-class-name-that-exceeds-line-length" href="https://example.com/very-long-url" data-attribute="another-very-long-attribute-value" { "content" }
+        }
+        "#,
+        r#"
+        html! {
+            section
+                class="very-long-class-name-that-exceeds-line-length"
+                href="https://example.com/very-long-url"
+                data-attribute="another-very-long-attribute-value"
+            { "content" }
+        }
+        "#
+    );
+
     test_default!(
         multiline_attribute_toggle_block,
         r#"
@@ -714,6 +750,40 @@ mod test {
                         .unwrap_or_default() == some_long_testing_variable_name;
                     x
                 }];
+        }
+        "#
+    );
+
+    test_small_line!(
+        short_element_name_id_first,
+        r#"
+        html! {
+            p #very-long-id-name-that-exceeds-line-length href="https://example.com/very-long-url" data-attribute="another-very-long-attribute-value" { "content" }
+        }
+        "#,
+        r#"
+        html! {
+            p   #very-long-id-name-that-exceeds-line-length
+                href="https://example.com/very-long-url"
+                data-attribute="another-very-long-attribute-value"
+            { "content" }
+        }
+        "#
+    );
+
+    test_small_line!(
+        short_element_name_class_first,
+        r#"
+        html! {
+            p.very-long-class-name-that-exceeds-line-length href="https://example.com/very-long-url" data-attribute="another-very-long-attribute-value" { "content" }
+        }
+        "#,
+        r#"
+        html! {
+            p   .very-long-class-name-that-exceeds-line-length
+                href="https://example.com/very-long-url"
+                data-attribute="another-very-long-attribute-value"
+            { "content" }
         }
         "#
     );

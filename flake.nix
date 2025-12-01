@@ -3,7 +3,7 @@
 
   inputs = {
     # NixPkgs
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
     # Fenix: rust toolchain
     fenix.url = "github:nix-community/fenix/monthly";

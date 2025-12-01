@@ -1,5 +1,5 @@
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;
@@ -58,7 +58,7 @@ fn execute_rustfmt_on_files() -> Result<()> {
     file.write_str(IN_FILE)?;
 
     // When
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg("--rustfmt").arg(file.path());
 
     // Then
@@ -75,7 +75,7 @@ fn execute_rustfmt_on_stdin() -> Result<()> {
     file.write_str(IN_FILE)?;
 
     // When
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg("--rustfmt").arg("-s").pipe_stdin(file)?;
 
     // Then

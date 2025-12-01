@@ -1,5 +1,5 @@
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;
@@ -65,7 +65,7 @@ fn format_file_from_argument() -> Result<()> {
     file.write_str(IN_FILE)?;
 
     // When
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg(file.path());
 
     // Then
@@ -84,7 +84,7 @@ fn format_multiple_files_from_argument() -> Result<()> {
     file_2.write_str(IN_FILE)?;
 
     // When
-    let mut cmd = Command::cargo_bin("maudfmt")?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg(file_1.path()).arg(file_2.path());
 
     // Then
@@ -105,7 +105,7 @@ fn format_dir_from_argument() -> Result<()> {
     file_2.write_str(IN_FILE)?;
 
     // When
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg(directory.path());
 
     // Then
@@ -123,7 +123,7 @@ fn format_file_from_stdin() -> Result<()> {
     file.write_str(IN_FILE)?;
 
     // When
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg("-s").pipe_stdin(file)?;
 
     // Then
@@ -193,7 +193,7 @@ fn format_file_with_custom_macro_names() -> Result<()> {
     let file = assert_fs::NamedTempFile::new("sample.rs")?;
     file.write_str(CUSTOM_MACRO_IN_FILE)?;
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg("--macro-names")
         .arg("maud,hyperscript::maud")
         .arg(file.path());
@@ -209,7 +209,7 @@ fn format_stdin_with_custom_macro_names() -> Result<()> {
     let file = assert_fs::NamedTempFile::new("stdin")?;
     file.write_str(CUSTOM_MACRO_IN_FILE)?;
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg("-s")
         .arg("--macro-names")
         .arg("maud,hyperscript::maud")
@@ -227,7 +227,7 @@ fn format_file_with_custom_macro_names_short_arg() -> Result<()> {
     let file = assert_fs::NamedTempFile::new("sample.rs")?;
     file.write_str(CUSTOM_MACRO_IN_FILE)?;
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg("-m").arg("maud,hyperscript::maud").arg(file.path());
 
     cmd.assert().success();
@@ -276,7 +276,7 @@ fn format_file_with_short_line_length() -> Result<()> {
     let file = assert_fs::NamedTempFile::new("sample.rs")?;
     file.write_str(LONG_LINE_IN_FILE)?;
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg("--line-length").arg("50").arg(file.path());
 
     cmd.assert().success();
@@ -293,7 +293,7 @@ fn format_file_with_long_line_length() -> Result<()> {
     let file = assert_fs::NamedTempFile::new("sample.rs")?;
     file.write_str(LONG_LINE_IN_FILE)?;
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg("--line-length").arg("200").arg(file.path());
 
     cmd.assert().success();
@@ -310,7 +310,7 @@ fn format_stdin_with_line_length() -> Result<()> {
     let file = assert_fs::NamedTempFile::new("stdin")?;
     file.write_str(LONG_LINE_IN_FILE)?;
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo::cargo_bin_cmd!();
     cmd.arg("-s")
         .arg("--line-length")
         .arg("50")

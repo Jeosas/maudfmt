@@ -101,7 +101,7 @@
           toolchain = mkRustToolchain system;
         in
         {
-          pre-commit-check = pre-commit-hooks.lib.${pkgs.system}.run {
+          pre-commit-check = pre-commit-hooks.lib.${pkgs.stdenv.hostPlatform.system}.run {
             src = ./.;
             settings = {
               rust.check.cargoDeps = pkgs.rustPlatform.importCargoLock {
@@ -128,7 +128,6 @@
               };
               # Nix
               nixfmt-rfc-style.enable = true;
-              flake-checker.enable = true;
               # Rust
               rustfmt = {
                 enable = true;

@@ -99,9 +99,7 @@ fn get_file_paths(input_patterns: Vec<String>) -> Result<Vec<PathBuf>> {
 }
 
 fn as_glob_pattern(pattern: String) -> String {
-    let is_dir = fs::metadata(&pattern)
-        .map(|meta| meta.is_dir())
-        .unwrap_or(false);
+    let is_dir = fs::metadata(&pattern).is_ok_and(|meta| meta.is_dir());
     if is_dir {
         return format!("{}/**/*.rs", &pattern.trim_end_matches('/'));
     }
@@ -124,9 +122,8 @@ fn run_rustfmt(source: &str) -> Option<String> {
 
     let output = child.wait_with_output().expect("failed to read stdout");
 
-    if output.status.success() {
-        Some(String::from_utf8(output.stdout).expect("stdout is not valid utf8"))
-    } else {
-        None
-    }
+    output
+        .status
+        .success()
+        .then_some(String::from_utf8(output.stdout).expect("stdout is not valid utf8"))
 }

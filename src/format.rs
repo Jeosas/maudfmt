@@ -79,6 +79,8 @@ fn format_macro(mac: &MaudMacro, source: &Rope, options: &FormatOptions) -> Resu
     )
     .context("Failed to parse maud macro")?;
 
+    dbg!(&markups);
+
     Ok(print(markups, mac, source, options))
 }
 

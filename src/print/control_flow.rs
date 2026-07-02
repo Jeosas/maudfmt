@@ -3,7 +3,7 @@ use syn::{Expr, spanned::Spanned as _};
 use crate::{
     print::Printer,
     unparse::{unparse_local, unparse_pat},
-    vendor::ast::{ControlFlow, ControlFlowKind, Element, IfExpr, IfOrBlock},
+    vendor::ast::{ControlFlow, ControlFlowKind, Element, IfExpr, IfOrBlock, Markup},
 };
 
 impl<'a, 'b> Printer<'a, 'b> {
@@ -75,7 +75,16 @@ impl<'a, 'b> Printer<'a, 'b> {
                         self.print_expr(guard_cond, indent_level);
                     }
                     self.write(" => ");
-                    self.print_markup(arm.body, indent_level + 1, true);
+                    match arm.body {
+                        Markup::Block(_) => {
+                            self.print_markup(arm.body, indent_level + 1, true);
+                        }
+                        Markup::Lit(_) | Markup::Element(_) | Markup::Splice { .. } => {
+                            self.print_markup(arm.body, indent_level + 1, true);
+                            self.write(",");
+                        }
+                        _ => unimplemented!(),
+                    }
                 }
                 self.print_trailing_comments(match_expr.brace_token.span, indent_level + 1);
                 self.new_line(indent_level);
@@ -243,6 +252,94 @@ mod test {
         "#
     );
 
+    test_small_line!(
+        if_let_long,
+        r#"
+        html! { p { "Hello, " @if let Some(name) = 
+        usere.eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.eeeeeeeeeeeeeeeee.eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+        { (name) } @else { "stranger" } "!"}}
+        "#,
+        r#"
+        html! {
+            p {
+                "Hello, "
+                @if let Some(name) = {
+                    usere
+                        .eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+                        .eeeeeeeeeeeeeeeee
+                        .eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+                } { (name) } @else {
+                    "stranger"
+                }
+                "!"
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_if_or_chain,
+        r#"
+        html! { @if user == 0 || user == 1 { 
+            "Super secret woona to-do list" 
+        } }
+        "#,
+        r#"
+        html! {
+            @if user == 0 || user == 1 { "Super secret woona to-do list" }
+        }
+        "#
+    );
+
+    test_default!(
+        control_if_or_chain_2,
+        r#"
+        html! { @if user == Princess::Luna || user == Princess::Lina { 
+        h1 { "Super secret woona to-do list" }
+        ul { li { "Nuke the Crystal Empire" } li { "Kick a puppy" } li { "Evil laugh" } } } }
+        "#,
+        r#"
+        html! {
+            @if user == Princess::Luna || user == Princess::Lina {
+                h1 { "Super secret woona to-do list" }
+                ul {
+                    li { "Nuke the Crystal Empire" }
+                    li { "Kick a puppy" }
+                    li { "Evil laugh" }
+                }
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        if_let_and,
+        r#"
+        html! { @if let Some(name) = user && user == "Bob" { (name) } 
+        @else { "stranger" }}
+        "#,
+        r#"
+        html! {
+            @if let Some(name) = user && user == "Bob" { (name) } @else { "stranger" }
+        }
+        "#
+    );
+
+    test_default!(
+        if_let_and_chained,
+        r#"
+        html! { @if let Some(user) = session && let Some(role) = user.role && role == "admin" { 
+        (user.name) } @else { "stranger" } }
+        "#,
+        r#"
+        html! {
+            @if let Some(user) = session && let Some(role) = user.role && role == "admin" {
+                (user.name)
+            } @else { "stranger" }
+        }
+        "#
+    );
+
     test_default!(
         control_for,
         r#"
@@ -304,7 +401,41 @@ mod test {
                 Princess::Celestia => {
                     p { "Sister, please stop reading my diary. It's rude." }
                 }
-                _ => p { "Nothing to see here; move along." }
+                _ => p { "Nothing to see here; move along." },
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_match_all_cases,
+        r#"
+        html! { @match user {
+        0 => { h1 { "Super secret woona to-do list" } ul { li { "Nuke the Crystal Empire" } li { "Kick a puppy" } li { "Evil laugh" } } }
+        1 => p { "Sister, please stop reading my diary. It's rude." }, 2 => (user),
+        3 => ( super_long_splice .with_a_super_long_method() .and_an_other_super_super_long_method_to_call_afer() .unwarp()),
+        _ => "lit", } }
+        "#,
+        r#"
+        html! {
+            @match user {
+                0 => {
+                    h1 { "Super secret woona to-do list" }
+                    ul {
+                        li { "Nuke the Crystal Empire" }
+                        li { "Kick a puppy" }
+                        li { "Evil laugh" }
+                    }
+                }
+                1 => p { "Sister, please stop reading my diary. It's rude." },
+                2 => (user),
+                3 => ({
+                    super_long_splice
+                        .with_a_super_long_method()
+                        .and_an_other_super_super_long_method_to_call_afer()
+                        .unwarp()
+                }),
+                _ => "lit",
             }
         }
         "#
@@ -323,7 +454,42 @@ mod test {
                     h1 { "Title" }
                     h2 { "Subtitle" }
                 }
-                _ => p { "Nothing to see here; move along." }
+                _ => p { "Nothing to see here; move along." },
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_match_with_multiple_match_patterns,
+        r#"
+        html!{@match aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        { 0 | 1 | 2 => "yes", _ => "no" }}
+        "#,
+        r#"
+        html! {
+            @match aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa {
+                0 | 1 | 2 => "yes",
+                _ => "no",
+            }
+        }
+        "#
+    );
+
+    test_default!(
+        control_match_with_multiple_match_patterns_2,
+        r#"
+        html!{@match user{Princess::Luna|Princess::Lina=>{h1{"Title"}
+        h2{"Subtitle"}} _=>p{"Nothing to see here; move along."},}}
+        "#,
+        r#"
+        html! {
+            @match user {
+                Princess::Luna | Princess::Lina => {
+                    h1 { "Title" }
+                    h2 { "Subtitle" }
+                }
+                _ => p { "Nothing to see here; move along." },
             }
         }
         "#

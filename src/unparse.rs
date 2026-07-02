@@ -3,27 +3,53 @@ use quote::quote;
 use syn::{Expr, File, Item, Local, Pat, Stmt};
 
 pub fn unparse_pat(pat: &Pat, total_indent_size: usize) -> Vec<String> {
-    let tokens = quote!(let #pat;);
-    let unparsed = unparse(tokens, total_indent_size);
+    match pat {
+        Pat::Or(pat_or) => {
+            let tokens = quote!(match a {
+                ///
+                #pat_or => (),
+                _=> ()
+            });
+            let mut unparsed = unparse(tokens, total_indent_size - 1);
 
-    match unparsed.len() {
-        0 => unparsed,
-        1 => vec![
-            unparsed[0]
-                .trim()
-                .strip_prefix("let ")
+            unparsed.remove(0);
+            unparsed.remove(0);
+            unparsed.remove(unparsed.len() - 1);
+            unparsed.remove(unparsed.len() - 1);
+
+            unparsed[0] = unparsed[0].trim().to_string();
+            let last_idx = unparsed.len() - 1;
+            unparsed[last_idx] = unparsed[last_idx]
+                .strip_suffix(" => {}")
                 .unwrap()
-                .strip_suffix(";")
-                .unwrap()
-                .to_string(),
-        ],
-        _ => {
-            let mut unparsed = unparsed;
-            unparsed[0] = unparsed[0].trim().strip_prefix("let ").unwrap().to_string();
-            let last_idx = unparsed.len();
-            unparsed[last_idx] = unparsed[last_idx].strip_suffix(";").unwrap().to_string();
+                .to_string();
 
             unparsed
+        }
+        other => {
+            let tokens = quote!(let #other;);
+            let unparsed = unparse(tokens, total_indent_size);
+
+            match unparsed.len() {
+                0 => unparsed,
+                1 => vec![
+                    unparsed[0]
+                        .trim()
+                        .strip_prefix("let ")
+                        .unwrap()
+                        .strip_suffix(";")
+                        .unwrap()
+                        .to_string(),
+                ],
+                _ => {
+                    let mut unparsed = unparsed;
+                    unparsed[0] = unparsed[0].trim().strip_prefix("let ").unwrap().to_string();
+                    let last_idx = unparsed.len();
+                    unparsed[last_idx] = unparsed[last_idx].strip_suffix(";").unwrap().to_string();
+
+                    unparsed
+                }
+            }
         }
     }
 }

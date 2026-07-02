@@ -5,14 +5,12 @@ use syn::{
     visit::{self, Visit},
 };
 
-#[derive(Debug)]
 pub struct MaudMacro<'a> {
     pub macro_: &'a Macro,
     pub indent: Indent,
     pub macro_name: String,
 }
 
-#[derive(Debug)]
 pub struct Indent {
     pub tabs: usize,
     pub spaces: usize,

@@ -15,6 +15,7 @@ const IGNORE_PLACEHOLDER: &str = "\"__MAUDFMT_IGNORED_PLACEHOLDER__\"";
 pub struct FormatOptions {
     pub line_length: usize,
     pub macro_names: Vec<String>,
+    pub tailwindcss: bool,
 }
 
 impl Default for FormatOptions {
@@ -22,6 +23,7 @@ impl Default for FormatOptions {
         FormatOptions {
             line_length: 100,
             macro_names: vec![String::from("maud::html"), String::from("html")],
+            tailwindcss: false,
         }
     }
 }

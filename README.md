@@ -56,6 +56,7 @@ Options:
   -m, --macro-names <MACRO_NAMES>  Comma-separated list of macro names (overriding html and maud::html)
       --rustfmt                    Run rustfmt after maudfmt
       --line-length <LINE_LENGTH>  Maximum line length
+      --tailwindcss                Sort Tailwind CSS classes
   -h, --help                       Print help
   -V, --version                    Print version
 ```

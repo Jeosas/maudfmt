@@ -18,6 +18,7 @@ proc-macro2 = { version = "1", features = ["span-locations"] }
 prettyplease = { version = "0.2", features = ["verbatim"] }
 proc-macro2-diagnostics = { version = "0.10", default-features = false }
 quote = "1"
+rustywind_core = "0.5"
 syn = { version = "2", features = ["visit", "full", "extra-traits"] }
 # keep-sorted end
 

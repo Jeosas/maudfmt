@@ -5,6 +5,7 @@ mod collect;
 mod format;
 mod line_length;
 mod print;
+mod tailwind;
 mod unparse;
 mod vendor;
 

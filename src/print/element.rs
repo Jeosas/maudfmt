@@ -1,5 +1,6 @@
 use quote::quote;
 use syn::{
+    LitStr,
     spanned::Spanned as _,
     token::{Dot, Pound},
 };
@@ -8,8 +9,8 @@ use crate::{
     line_length::{block_len, element_attrs_len},
     print::Printer,
     vendor::ast::{
-        Attribute, AttributeType, Element, ElementBody, HtmlName, HtmlNameFragment,
-        HtmlNameOrMarkup, HtmlNamePunct, Toggler,
+        Attribute, AttributeType, Element, ElementBody, HtmlLit, HtmlName, HtmlNameFragment,
+        HtmlNameOrMarkup, HtmlNamePunct, Markup, NoElement, Toggler,
     },
 };
 
@@ -50,6 +51,13 @@ impl<'a, 'b> Printer<'a, 'b> {
                 } => classes.push((dot_token, name, toggler)),
                 Attribute::Named { name, attr_type } => named_attrs.push((name, attr_type)),
             }
+        }
+
+        if self.options.tailwindcss {
+            classes = crate::tailwind::sort_by_class_name(classes, |(_, name, _)| match name {
+                HtmlNameOrMarkup::HtmlName(html_name) => Some(html_name.to_string()),
+                HtmlNameOrMarkup::Markup(_) => None,
+            });
         }
 
         let should_wrap = if let Some(element_len) =
@@ -152,6 +160,11 @@ impl<'a, 'b> Printer<'a, 'b> {
                     } else {
                         indent_level
                     };
+                    let value = if self.options.tailwindcss {
+                        maybe_sort_class_value(&name, value)
+                    } else {
+                        value
+                    };
                     self.print_markup(value, attr_indent, true)
                 }
                 AttributeType::Optional { toggler, .. } => {
@@ -211,6 +224,23 @@ impl<'a, 'b> Printer<'a, 'b> {
         } else {
             self.write(&value);
         }
+    }
+}
+
+/// Sorts the value of a `class="..."` attribute in place, when it is a plain string literal.
+/// Any other attribute name, or a value spliced/interpolated with Rust code, is left untouched.
+fn maybe_sort_class_value(name: &HtmlName, value: Markup<NoElement>) -> Markup<NoElement> {
+    if name.to_string() != "class" {
+        return value;
+    }
+    match value {
+        Markup::Lit(HtmlLit { lit }) => {
+            let sorted = crate::tailwind::sort_class_string(&lit.value());
+            Markup::Lit(HtmlLit {
+                lit: LitStr::new(&sorted, lit.span()),
+            })
+        }
+        other => other,
     }
 }
 

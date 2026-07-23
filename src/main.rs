@@ -32,6 +32,10 @@ struct Cli {
     /// Maximum line length
     #[arg(long)]
     line_length: Option<usize>,
+
+    /// Sort Tailwind CSS classes
+    #[arg(long, default_value = "false")]
+    tailwindcss: bool,
 }
 
 fn main() -> Result<()> {
@@ -43,6 +47,9 @@ fn main() -> Result<()> {
     }
     if let Some(line_length) = cli.line_length {
         format_options.line_length = line_length;
+    }
+    if cli.tailwindcss {
+        format_options.tailwindcss = true;
     }
 
     if cli.stdin {
